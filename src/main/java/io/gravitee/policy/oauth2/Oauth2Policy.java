@@ -44,6 +44,9 @@ public class Oauth2Policy {
     @Inject
     private OAuth2PolicyContext policyContext;
 
+    @Inject
+    private HttpClient httpClient;
+
     @OnRequest
     public void onRequest(Request request, Response response, ExecutionContext executionContext, PolicyChain policyChain) {
         if (request.headers() == null || request.headers().get(HttpHeaders.AUTHORIZATION) == null || request.headers().get(HttpHeaders.AUTHORIZATION).isEmpty()) {
@@ -51,7 +54,6 @@ public class Oauth2Policy {
             policyChain.failWith(PolicyResult.failure(401, "No OAuth authorization header was supplied"));
             return;
         }
-
         Optional<String> optionalHeaderAccessToken = request.headers().get(HttpHeaders.AUTHORIZATION).stream().filter(h -> h.startsWith("Bearer")).findFirst();
 
         if (!optionalHeaderAccessToken.isPresent()) {
