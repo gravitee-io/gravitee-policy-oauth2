@@ -15,15 +15,17 @@
  */
 package io.gravitee.policy.oauth2;
 
+import org.asynchttpclient.AsyncHandler;
+
 /**
  * @author David BRASSELY (david at gravitee.io)
  * @author GraviteeSource Team
  */
 public interface HttpClient {
 
-    void init();
+    void init() throws Exception;
 
-    void close();
+    void close() throws Exception;
 
-    void validateToken();
+    void validateToken(OAuth2Request oAuth2Request, AsyncHandler responseHandler);
 }

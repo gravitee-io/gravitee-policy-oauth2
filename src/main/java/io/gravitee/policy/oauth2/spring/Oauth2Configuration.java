@@ -15,6 +15,8 @@
  */
 package io.gravitee.policy.oauth2.spring;
 
+import io.gravitee.policy.oauth2.HttpClient;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
@@ -24,4 +26,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class Oauth2Configuration {
 
+    @Bean
+    public HttpClient httpClient() {
+        return new DefautHttpClient();
+    }
 }
