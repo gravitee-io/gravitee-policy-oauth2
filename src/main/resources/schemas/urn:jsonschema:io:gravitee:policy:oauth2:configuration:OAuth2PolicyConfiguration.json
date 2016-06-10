@@ -1,0 +1,14 @@
+{
+  "type" : "object",
+  "id" : "urn:jsonschema:io:gravitee:policy:oauth2:configuration:OAuth2PolicyConfiguration",
+  "properties" : {
+    "oauthResource" : {
+      "title": "OAuth2 resource",
+      "description": "OAuth2 resource used to validate token.",
+      "type" : "string"
+    }
+  },
+  "required": [
+    "oauthResource"
+  ]
+}

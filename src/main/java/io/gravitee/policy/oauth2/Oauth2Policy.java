@@ -23,6 +23,10 @@ import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.api.PolicyResult;
 import io.gravitee.policy.api.annotations.OnRequest;
 import io.gravitee.policy.oauth2.configuration.OAuth2PolicyConfiguration;
+import io.gravitee.resource.api.ResourceManager;
+import io.gravitee.resource.oauth2.OAuth2Request;
+import io.gravitee.resource.oauth2.OAuth2Resource;
+import io.gravitee.resource.oauth2.configuration.OAuth2ResourceConfiguration;
 import org.asynchttpclient.AsyncCompletionHandler;
 import org.asynchttpclient.AsyncHandler;
 
@@ -40,12 +44,6 @@ public class Oauth2Policy {
 
     @Inject
     private OAuth2PolicyConfiguration oAuth2PolicyConfiguration;
-
-    @Inject
-    private OAuth2PolicyContext policyContext;
-
-    @Inject
-    private HttpClient httpClient;
 
     @OnRequest
     public void onRequest(Request request, Response response, ExecutionContext executionContext, PolicyChain policyChain) {
@@ -70,38 +68,39 @@ public class Oauth2Policy {
             return;
         }
 
-        HttpClient client = policyContext.getComponent(HttpClient.class);
-        client.validateToken(buildOAuthRequest(accessToken), responseHandler(policyChain, request, response, executionContext));
+        OAuth2Resource oauth2 = executionContext.getComponent(ResourceManager.class).getResource("oauth2", OAuth2Resource.class);
+        oauth2.validateToken(buildOAuthRequest(oauth2.configuration(), accessToken), responseHandler(policyChain, request, response, executionContext));
     }
 
     private String extractHeaderToken(String headerAccessToken) {
         return headerAccessToken.substring(BEARER_TYPE.length()).trim();
     }
 
-    private OAuth2Request buildOAuthRequest(String accessToken) {
+    private OAuth2Request buildOAuthRequest(OAuth2ResourceConfiguration configuration, String accessToken) {
         Map<String, Collection<String>> headers = new HashMap<>();
         Map<String, List<String>> queryParams = new HashMap<>();
 
         OAuth2Request oAuth2Request = new OAuth2Request();
-        oAuth2Request.setUrl(policyContext.getOauthTokenValidationEndPointURL());
-        oAuth2Request.setMethod(policyContext.getOauthTokenValidationEndpointHttpMethod());
 
-        if (policyContext.oAuthTokenValidationEndPointIsSecure()) {
-            String headerName = policyContext.getOauthTokenValidationEndPointAuthorizationHeaderName();
-            String headerValue = policyContext.getOauthTokenValidationEndpointAuthorizationScheme().trim() + " " + policyContext.getOauthTokenValidationEndpointAuthorizationValue();
+        oAuth2Request.setUrl(configuration.getServerURL());
+        oAuth2Request.setMethod(configuration.getHttpMethod());
+
+        if (configuration.isSecure()) {
+            String headerName = configuration.getAuthorizationHeaderName();
+            String headerValue = configuration.getAuthorizationScheme().trim() + " " + configuration.getAuthorizationValue();
             Collection<String> headerValues = Arrays.asList(new String[] { headerValue });
             headers.put(headerName, headerValues);
         }
 
-        if (policyContext.oAuthTokenValidationEndpointTokenIsSuppliedByQueryParam()) {
-            String queryParamName = policyContext.getOauthTokenValidationEndpointTokenQueryParamName();
+        if (configuration.isTokenIsSuppliedByQueryParam()) {
+            String queryParamName = configuration.getTokenQueryParamName();
             String queryParamValue = accessToken;
             List<String> queryParamValues = Arrays.asList(new String[] { queryParamValue });
             queryParams.put(queryParamName, queryParamValues);
         }
 
-        if (policyContext.oAuthTokenValidationEndpointTokenIsSuppliedByHttpHeader()) {
-            String headerName = policyContext.getOauthTokenValidationEndpointTokenHeaderName();
+        if (configuration.isTokenIsSuppliedByHttpHeader()) {
+            String headerName = configuration.getTokenHeaderName();
             String headerValue = accessToken;
             Collection<String> headerValues = Arrays.asList(new String[] { headerValue });
             headers.put(headerName, headerValues);
@@ -135,9 +134,5 @@ public class Oauth2Policy {
                 policyChain.failWith(PolicyResult.failure(t.getMessage()));
             }
         };
-    }
-
-    public void setPolicyContext(OAuth2PolicyContext policyContext) {
-        this.policyContext = policyContext;
     }
 }

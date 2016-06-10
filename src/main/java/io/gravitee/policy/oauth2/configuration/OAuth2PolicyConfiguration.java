@@ -16,7 +16,6 @@
 package io.gravitee.policy.oauth2.configuration;
 
 import io.gravitee.policy.api.PolicyConfiguration;
-import io.gravitee.policy.api.annotations.properties.Property;
 
 /**
  * @author David BRASSELY (david at gravitee.io)
@@ -24,5 +23,13 @@ import io.gravitee.policy.api.annotations.properties.Property;
  */
 public class OAuth2PolicyConfiguration implements PolicyConfiguration {
 
+    private String oauthResource;
 
+    public String getOauthResource() {
+        return oauthResource;
+    }
+
+    public void setOauthResource(String oauthResource) {
+        this.oauthResource = oauthResource;
+    }
 }
