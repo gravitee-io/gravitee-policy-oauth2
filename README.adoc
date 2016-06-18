@@ -1,7 +1,9 @@
 = Oauth2 Policy
 
-https://github.com/gravitee-io/gravitee-policy-oauth2[Source code],
-image:http://build.gravitee.io/jenkins/buildStatus/icon?job=gravitee-policy-oauth2["Build status", link="http://build.gravitee.io/jenkins/job/gravitee-policy-oauth2/"]
+ifdef::env-github[]
+image:https://ci.gravitee.io/buildStatus/icon?job=gravitee-io/gravitee-policy-oauth2/master["Build status", link="https://ci.gravitee.io/job/gravitee-io/job/gravitee-policy-oauth2/"]
+image:https://badges.gitter.im/Join Chat.svg["Gitter", link="https://gitter.im/gravitee-io/gravitee-io?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge"]
+endif::[]
 
 == Scope
 
