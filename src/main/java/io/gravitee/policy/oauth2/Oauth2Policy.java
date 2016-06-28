@@ -16,6 +16,7 @@
 package io.gravitee.policy.oauth2;
 
 import io.gravitee.common.http.HttpHeaders;
+import io.gravitee.common.http.HttpStatusCode;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
@@ -29,6 +30,8 @@ import io.gravitee.resource.oauth2.OAuth2Resource;
 import io.gravitee.resource.oauth2.configuration.OAuth2ResourceConfiguration;
 import org.asynchttpclient.AsyncCompletionHandler;
 import org.asynchttpclient.AsyncHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import java.util.*;
@@ -38,6 +41,8 @@ import java.util.*;
  * @author GraviteeSource Team
  */
 public class Oauth2Policy {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(Oauth2Policy.class);
 
     private static final String BEARER_TYPE = "Bearer";
     private static final String OAUTH2_ACCESS_TOKEN = "OAUTH2_ACCESS_TOKEN";
@@ -49,14 +54,16 @@ public class Oauth2Policy {
     public void onRequest(Request request, Response response, ExecutionContext executionContext, PolicyChain policyChain) {
         if (request.headers() == null || request.headers().get(HttpHeaders.AUTHORIZATION) == null || request.headers().get(HttpHeaders.AUTHORIZATION).isEmpty()) {
             response.headers().add(HttpHeaders.WWW_AUTHENTICATE, BEARER_TYPE+" realm=gravitee.io - No OAuth authorization header was supplied");
-            policyChain.failWith(PolicyResult.failure(401, "No OAuth authorization header was supplied"));
+            policyChain.failWith(PolicyResult.failure(HttpStatusCode.UNAUTHORIZED_401,
+                    "No OAuth authorization header was supplied"));
             return;
         }
         Optional<String> optionalHeaderAccessToken = request.headers().get(HttpHeaders.AUTHORIZATION).stream().filter(h -> h.startsWith("Bearer")).findFirst();
 
         if (!optionalHeaderAccessToken.isPresent()) {
             response.headers().add(HttpHeaders.WWW_AUTHENTICATE, BEARER_TYPE+" realm=gravitee.io - No OAuth authorization header was supplied");
-            policyChain.failWith(PolicyResult.failure(401, "No OAuth authorization header was supplied"));
+            policyChain.failWith(PolicyResult.failure(HttpStatusCode.UNAUTHORIZED_401,
+                    "No OAuth authorization header was supplied"));
             return;
         }
 
@@ -64,11 +71,14 @@ public class Oauth2Policy {
 
         if (accessToken.isEmpty()) {
             response.headers().add(HttpHeaders.WWW_AUTHENTICATE, BEARER_TYPE+" realm=gravitee.io - No OAuth access token was supplied");
-            policyChain.failWith(PolicyResult.failure(401, "No OAuth access token was supplied"));
+            policyChain.failWith(PolicyResult.failure(HttpStatusCode.UNAUTHORIZED_401,
+                    "No OAuth access token was supplied"));
             return;
         }
 
-        OAuth2Resource oauth2 = executionContext.getComponent(ResourceManager.class).getResource("oauth2", OAuth2Resource.class);
+        OAuth2Resource oauth2 = executionContext.getComponent(ResourceManager.class).getResource(
+                oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class);
+
         oauth2.validateToken(buildOAuthRequest(oauth2.configuration(), accessToken), responseHandler(policyChain, request, response, executionContext));
     }
 
@@ -86,24 +96,14 @@ public class Oauth2Policy {
         oAuth2Request.setMethod(configuration.getHttpMethod());
 
         if (configuration.isSecure()) {
-            String headerName = configuration.getAuthorizationHeaderName();
-            String headerValue = configuration.getAuthorizationScheme().trim() + " " + configuration.getAuthorizationValue();
-            Collection<String> headerValues = Arrays.asList(new String[] { headerValue });
-            headers.put(headerName, headerValues);
+            headers.put(configuration.getAuthorizationHeaderName(),
+                    Collections.singletonList(configuration.getAuthorizationScheme().trim() + " " + configuration.getAuthorizationValue()));
         }
 
         if (configuration.isTokenIsSuppliedByQueryParam()) {
-            String queryParamName = configuration.getTokenQueryParamName();
-            String queryParamValue = accessToken;
-            List<String> queryParamValues = Arrays.asList(new String[] { queryParamValue });
-            queryParams.put(queryParamName, queryParamValues);
-        }
-
-        if (configuration.isTokenIsSuppliedByHttpHeader()) {
-            String headerName = configuration.getTokenHeaderName();
-            String headerValue = accessToken;
-            Collection<String> headerValues = Arrays.asList(new String[] { headerValue });
-            headers.put(headerName, headerValues);
+            queryParams.put(configuration.getTokenQueryParamName(), Collections.singletonList(accessToken));
+        } else if (configuration.isTokenIsSuppliedByHttpHeader()) {
+            headers.put(configuration.getTokenHeaderName(), Collections.singletonList(accessToken));
         }
 
         oAuth2Request.setHeaders(headers);
@@ -117,21 +117,23 @@ public class Oauth2Policy {
 
             @Override
             public Void onCompleted(org.asynchttpclient.Response clientResponse) throws Exception {
-                if (clientResponse.getStatusCode() == 200) {
+                if (clientResponse.getStatusCode() == HttpStatusCode.OK_200) {
                     executionContext.setAttribute(OAUTH2_ACCESS_TOKEN, clientResponse.getResponseBody());
                     policyChain.doNext(request, response);
                 } else {
                     response.headers().add(HttpHeaders.WWW_AUTHENTICATE, BEARER_TYPE+" realm=gravitee.io " + clientResponse.getResponseBody());
-                    policyChain.failWith(PolicyResult.failure(401, clientResponse.getResponseBody()));
+                    policyChain.failWith(PolicyResult.failure(HttpStatusCode.UNAUTHORIZED_401,
+                            clientResponse.getResponseBody()));
                 }
                 return null;
             }
 
             @Override
             public void onThrowable(Throwable t) {
-                super.onThrowable(t);
+                LOGGER.warn("Unexpected error while invoking remote OAuth2 server", t);
                 response.headers().add(HttpHeaders.WWW_AUTHENTICATE, BEARER_TYPE + " realm=gravitee.io " + t.getMessage());
-                policyChain.failWith(PolicyResult.failure(t.getMessage()));
+                policyChain.failWith(PolicyResult.failure(HttpStatusCode.SERVICE_UNAVAILABLE_503,
+                        "Service Unavailable"));
             }
         };
     }
