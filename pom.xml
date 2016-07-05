@@ -22,7 +22,7 @@
 
     <groupId>io.gravitee.policy</groupId>
     <artifactId>gravitee-policy-oauth2</artifactId>
-    <version>0.3.0-SNAPSHOT</version>
+    <version>0.3.0</version>
 
     <name>Gravitee IO - Policy - OAuth2</name>
     <description>Description of the OAuth2 Gravitee Policy</description>
@@ -34,7 +34,7 @@
     </parent>
 
     <properties>
-        <gravitee-gateway-api.version>0.11.0</gravitee-gateway-api.version>
+        <gravitee-gateway-api.version>0.13.0</gravitee-gateway-api.version>
         <gravitee-policy-api.version>0.9.0</gravitee-policy-api.version>
         <gravitee-resource-api.version>0.1.0</gravitee-resource-api.version>
         <gravitee-common.version>0.10.0</gravitee-common.version>
