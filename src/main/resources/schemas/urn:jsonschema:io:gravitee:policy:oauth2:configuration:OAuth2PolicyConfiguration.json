@@ -6,6 +6,12 @@
       "title": "OAuth2 resource",
       "description": "OAuth2 resource used to validate token.",
       "type" : "string"
+    },
+    "extractPayload" : {
+      "title": "Extract OAuth2 payload",
+      "description": "Push the token endpoint payload into the 'oauth.payload' context attribute.",
+      "type" : "boolean",
+      "default": false
     }
   },
   "required": [

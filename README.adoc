@@ -1,40 +1,74 @@
-= Oauth2 Policy
+= OAuth2 Policy
 
 ifdef::env-github[]
 image:https://ci.gravitee.io/buildStatus/icon?job=gravitee-io/gravitee-policy-oauth2/master["Build status", link="https://ci.gravitee.io/job/gravitee-io/job/gravitee-policy-oauth2/"]
 image:https://badges.gitter.im/Join Chat.svg["Gitter", link="https://gitter.im/gravitee-io/gravitee-io?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge"]
 endif::[]
 
-== Scope
+== Phase
 
+[cols="2*", options="header"]
 |===
-|onRequest |onResponse
+^|onRequest
+^|onResponse
 
-| X
-|
+^.^| X
+^.^|
 
 |===
 
 == Description
 
-Gravitee.io OAuth 2 policy authentication. Check if an OAuth 2 access token is valid during the request process.
+The OAuth2 policy checks if an access token is valid during request processing.
 
-If the access token is valid, the request is allowed to proceed, if not the process stops and reject the request.
+If the access token is valid, the request is allowed to proceed, if not the process stops and rejects the request.
 
-The access token must be supply in the Authorization HTTP request header :
+The access token must be supply in the ```Authorization``` HTTP request header :
 
-[source]
+[source, shell]
 ----
 $ curl -H "Authorization: Bearer |accessToken|" \
-           http://gravitee.io-gateway/yourApi/yourRestrictedData
+           http://gateway/api/resource
 ----
+
+== Attributes
+
+|===
+|Name |Description
+
+.^|oauth.access_token
+|Access token extracted from ```Authorization``` HTTP header.
+
+.^|oauth.payload
+|Payload from token endpoint / authorization server. Useful when you want to parse and extract data from it. Only if `extractPayload` is enabled from policy configuration.
+
+|===
 
 == Configuration
 
-The policy use the following Gravitee.io OAuth 2.0 resource properties :
+This policy use a Gravitee.io resource to access the OAuth2 Authorization Server.
+
+|===
+|Property |Required |Description |Type| Default
+
+.^|oauthResource
+^.^|X
+|The OAuth2 resource used to validate access_token. This must reference a valid Gravitee.io OAuth2 resource.
+^.^|string
+|
+
+.^|extractPayload
+^.^|-
+|When access token is validated, the token endpoint payload is saved under the ```oauth.payload``` context attribute.
+^.^|boolean
+^.^|false
+
+|===
+
+The OAuth2 resource must be defined with these properties:
 
 [source, json]
-.Gravitee.io OAuth2 Resource
+OAuth2 Resource example:
 ----
  "properties" : {
     "serverURL" : {
@@ -107,6 +141,26 @@ The policy use the following Gravitee.io OAuth 2.0 resource properties :
 .Sample
 ----
 "oauth2": {
-  "oauthResource": {}
+  "oauthResource": "oauth2-resource-name",
+  "extractPayload": true
 }
 ----
+
+== Http Status Code
+
+|===
+|Code |Message
+
+.^| ```401```
+| In case of:
+
+* No OAuth authorization server has been configured
+* No OAuth authorization header was supplied
+* No OAuth access_token was supplied
+* Access token can not be validated by authorization server
+
+.^| ```403```
+| Access token can not be validated because of a technical error with
+authorization server.
+
+|===

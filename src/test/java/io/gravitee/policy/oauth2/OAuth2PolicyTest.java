@@ -19,9 +19,12 @@ import io.gravitee.common.http.HttpHeaders;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
+import io.gravitee.gateway.api.handler.Handler;
 import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.api.PolicyResult;
-import org.asynchttpclient.AsyncHandler;
+import io.gravitee.policy.oauth2.configuration.OAuth2PolicyConfiguration;
+import io.gravitee.resource.api.ResourceManager;
+import io.gravitee.resource.oauth2.OAuth2Resource;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,13 +35,15 @@ import java.util.HashMap;
 import java.util.UUID;
 
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 import static org.mockito.internal.verification.VerificationModeFactory.times;
 
 /**
- * @author Titouan COMPIEGNE (titouan.compiegne at gravitee.io)
+ * @author David BRASSELY (david.brassely at graviteesource.com)
+ * @author Titouan COMPIEGNE (titouan.compiegne at graviteesource.com)
  * @author GraviteeSource Team
  */
 @RunWith(MockitoJUnitRunner.class)
@@ -56,16 +61,43 @@ public class OAuth2PolicyTest {
     @Mock
     PolicyChain mockPolicychain;
 
+    @Mock
+    ResourceManager resourceManager;
+
+    @Mock
+    OAuth2Resource oAuth2Resource;
+
+    @Mock
+    OAuth2PolicyConfiguration oAuth2PolicyConfiguration;
+
     @Before
     public void init() {
         initMocks(this);
     }
 
     @Test
-    public void shouldFailedIfNoAuthorizationHeaderProvided() {
-        Oauth2Policy policy = new Oauth2Policy();
+    public void shouldFailedIfNoOAuthResourceProvided() {
+        Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
+
+        when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(oAuth2Resource);
         when(mockResponse.headers()).thenReturn(new HttpHeaders());
+
         policy.onRequest(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
+
+        verify(mockPolicychain, times(1)).failWith(any(PolicyResult.class));
+    }
+
+    @Test
+    public void shouldFailedIfNoAuthorizationHeaderProvided() {
+        Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
+
+        when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(oAuth2Resource);
+        when(mockResponse.headers()).thenReturn(new HttpHeaders());
+
+        policy.onRequest(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
+
         verify(mockPolicychain, times(1)).failWith(any(PolicyResult.class));
     }
 
@@ -78,10 +110,15 @@ public class OAuth2PolicyTest {
             }
         });
 
-        Oauth2Policy policy = new Oauth2Policy();
+        Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
+
+        when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(oAuth2Resource);
         when(mockRequest.headers()).thenReturn(headers);
         when(mockResponse.headers()).thenReturn(new HttpHeaders());
+
         policy.onRequest(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
+
         verify(mockPolicychain, times(1)).failWith(any(PolicyResult.class));
     }
 
@@ -94,31 +131,66 @@ public class OAuth2PolicyTest {
             }
         });
 
-        Oauth2Policy policy = new Oauth2Policy();
+        Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
+
+        when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(oAuth2Resource);
         when(mockRequest.headers()).thenReturn(headers);
         when(mockResponse.headers()).thenReturn(new HttpHeaders());
+
         policy.onRequest(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
+
         verify(mockPolicychain, times(1)).failWith(any(PolicyResult.class));
     }
 
-    /*
     @Test
-    public void shouldCallOAuthAuthorizationServer() throws Exception {
+    public void shouldCallOAuthResource() throws Exception {
         final HttpHeaders headers = new HttpHeaders();
+        String bearer = UUID.randomUUID().toString();
+
         headers.setAll(new HashMap<String, String>() {
             {
-                put("Authorization", "Bearer " + UUID.randomUUID().toString());
+                put("Authorization", "Bearer " + bearer);
             }
         });
 
-        Oauth2Policy policy = new Oauth2Policy();
+        Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
         when(mockRequest.headers()).thenReturn(headers);
         when(mockResponse.headers()).thenReturn(new HttpHeaders());
-        when(mockPolicyContext.getComponent(HttpClient.class)).thenReturn(mockHttpClient);
-        policy.setPolicyContext(mockPolicyContext);
+        when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
+        when(oAuth2PolicyConfiguration.getOauthResource()).thenReturn("oauth2");
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(oAuth2Resource);
+
         policy.onRequest(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
-        verify(mockHttpClient, times(1)).validateToken(any(OAuth2Request.class), any(AsyncHandler.class));
+
+        verify(oAuth2Resource, times(1)).validate(eq(bearer), any(Handler.class));
+        verify(mockExecutionContext, times(1)).setAttribute(
+                eq(Oauth2Policy.CONTEXT_ATTRIBUTE_OAUTH_ACCESS_TOKEN), eq(bearer));
     }
-    */
+
+    @Test
+    public void shouldCallOAuthResourceAndHandleResult() throws Exception {
+        final HttpHeaders headers = new HttpHeaders();
+        String bearer = UUID.randomUUID().toString();
+
+        headers.setAll(new HashMap<String, String>() {
+            {
+                put("Authorization", "Bearer " + bearer);
+            }
+        });
+
+        Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
+        when(mockRequest.headers()).thenReturn(headers);
+        when(mockResponse.headers()).thenReturn(new HttpHeaders());
+        when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
+        when(oAuth2PolicyConfiguration.getOauthResource()).thenReturn("oauth2");
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(oAuth2Resource);
+
+        policy.onRequest(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
+
+        verify(oAuth2Resource, times(1)).validate(eq(bearer), any(Handler.class));
+        verify(mockExecutionContext, times(1)).setAttribute(
+                eq(Oauth2Policy.CONTEXT_ATTRIBUTE_OAUTH_ACCESS_TOKEN), eq(bearer));
+    }
 
 }
