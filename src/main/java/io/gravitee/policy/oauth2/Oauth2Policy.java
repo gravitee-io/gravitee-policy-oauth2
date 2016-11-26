@@ -20,46 +20,53 @@ import io.gravitee.common.http.HttpStatusCode;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
+import io.gravitee.gateway.api.handler.Handler;
 import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.api.PolicyResult;
 import io.gravitee.policy.api.annotations.OnRequest;
 import io.gravitee.policy.oauth2.configuration.OAuth2PolicyConfiguration;
 import io.gravitee.resource.api.ResourceManager;
-import io.gravitee.resource.oauth2.OAuth2Request;
 import io.gravitee.resource.oauth2.OAuth2Resource;
-import io.gravitee.resource.oauth2.configuration.OAuth2ResourceConfiguration;
-import org.asynchttpclient.AsyncCompletionHandler;
-import org.asynchttpclient.AsyncHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.gravitee.resource.oauth2.OAuth2Response;
 
-import javax.inject.Inject;
-import java.util.*;
+import java.util.Optional;
 
 /**
- * @author David BRASSELY (david at gravitee.io)
+ * @author David BRASSELY (david.brassely at graviteesource.com)
+ * @author Titouan COMPIEGNE (titouan.compiegne at graviteesource.com)
  * @author GraviteeSource Team
  */
 public class Oauth2Policy {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(Oauth2Policy.class);
-
     private static final String BEARER_TYPE = "Bearer";
-    private static final String OAUTH2_ACCESS_TOKEN = "OAUTH2_ACCESS_TOKEN";
+    static final String CONTEXT_ATTRIBUTE_OAUTH_PAYLOAD = "oauth.payload";
+    static final String CONTEXT_ATTRIBUTE_OAUTH_ACCESS_TOKEN = "oauth.access_token";
 
-    @Inject
     private OAuth2PolicyConfiguration oAuth2PolicyConfiguration;
+
+    public Oauth2Policy (OAuth2PolicyConfiguration oAuth2PolicyConfiguration) {
+        this.oAuth2PolicyConfiguration = oAuth2PolicyConfiguration;
+    }
 
     @OnRequest
     public void onRequest(Request request, Response response, ExecutionContext executionContext, PolicyChain policyChain) {
+        OAuth2Resource oauth2 = executionContext.getComponent(ResourceManager.class).getResource(
+                oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class);
+
+        if (oauth2 == null) {
+            policyChain.failWith(PolicyResult.failure(HttpStatusCode.UNAUTHORIZED_401,
+                    "No OAuth authorization server has been configured"));
+            return;
+        }
+
         if (request.headers() == null || request.headers().get(HttpHeaders.AUTHORIZATION) == null || request.headers().get(HttpHeaders.AUTHORIZATION).isEmpty()) {
             response.headers().add(HttpHeaders.WWW_AUTHENTICATE, BEARER_TYPE+" realm=gravitee.io - No OAuth authorization header was supplied");
             policyChain.failWith(PolicyResult.failure(HttpStatusCode.UNAUTHORIZED_401,
                     "No OAuth authorization header was supplied"));
             return;
         }
-        Optional<String> optionalHeaderAccessToken = request.headers().get(HttpHeaders.AUTHORIZATION).stream().filter(h -> h.startsWith("Bearer")).findFirst();
 
+        Optional<String> optionalHeaderAccessToken = request.headers().get(HttpHeaders.AUTHORIZATION).stream().filter(h -> h.startsWith("Bearer")).findFirst();
         if (!optionalHeaderAccessToken.isPresent()) {
             response.headers().add(HttpHeaders.WWW_AUTHENTICATE, BEARER_TYPE+" realm=gravitee.io - No OAuth authorization header was supplied");
             policyChain.failWith(PolicyResult.failure(HttpStatusCode.UNAUTHORIZED_401,
@@ -67,8 +74,7 @@ public class Oauth2Policy {
             return;
         }
 
-        String accessToken = extractHeaderToken(optionalHeaderAccessToken.get());
-
+        String accessToken = optionalHeaderAccessToken.get().substring(BEARER_TYPE.length()).trim();
         if (accessToken.isEmpty()) {
             response.headers().add(HttpHeaders.WWW_AUTHENTICATE, BEARER_TYPE+" realm=gravitee.io - No OAuth access token was supplied");
             policyChain.failWith(PolicyResult.failure(HttpStatusCode.UNAUTHORIZED_401,
@@ -76,64 +82,30 @@ public class Oauth2Policy {
             return;
         }
 
-        OAuth2Resource oauth2 = executionContext.getComponent(ResourceManager.class).getResource(
-                oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class);
+        // Set access_token in context
+        executionContext.setAttribute(CONTEXT_ATTRIBUTE_OAUTH_ACCESS_TOKEN, accessToken);
 
-        oauth2.validateToken(buildOAuthRequest(oauth2.configuration(), accessToken), responseHandler(policyChain, request, response, executionContext));
+        // Validate access token
+        oauth2.validate(accessToken, handleResponse(policyChain, request, response, executionContext));
     }
 
-    private String extractHeaderToken(String headerAccessToken) {
-        return headerAccessToken.substring(BEARER_TYPE.length()).trim();
-    }
-
-    private OAuth2Request buildOAuthRequest(OAuth2ResourceConfiguration configuration, String accessToken) {
-        Map<String, Collection<String>> headers = new HashMap<>();
-        Map<String, List<String>> queryParams = new HashMap<>();
-
-        OAuth2Request oAuth2Request = new OAuth2Request();
-
-        oAuth2Request.setUrl(configuration.getServerURL());
-        oAuth2Request.setMethod(configuration.getHttpMethod());
-
-        if (configuration.isSecure()) {
-            headers.put(configuration.getAuthorizationHeaderName(),
-                    Collections.singletonList(configuration.getAuthorizationScheme().trim() + " " + configuration.getAuthorizationValue()));
-        }
-
-        if (configuration.isTokenIsSuppliedByQueryParam()) {
-            queryParams.put(configuration.getTokenQueryParamName(), Collections.singletonList(accessToken));
-        } else if (configuration.isTokenIsSuppliedByHttpHeader()) {
-            headers.put(configuration.getTokenHeaderName(), Collections.singletonList(accessToken));
-        }
-
-        oAuth2Request.setHeaders(headers);
-        oAuth2Request.setQueryParams(queryParams);
-
-        return oAuth2Request;
-    }
-
-    private AsyncHandler responseHandler(PolicyChain policyChain, Request request, Response response, ExecutionContext executionContext) {
-        return new AsyncCompletionHandler<Void>() {
-
-            @Override
-            public Void onCompleted(org.asynchttpclient.Response clientResponse) throws Exception {
-                if (clientResponse.getStatusCode() == HttpStatusCode.OK_200) {
-                    executionContext.setAttribute(OAUTH2_ACCESS_TOKEN, clientResponse.getResponseBody());
-                    policyChain.doNext(request, response);
-                } else {
-                    response.headers().add(HttpHeaders.WWW_AUTHENTICATE, BEARER_TYPE+" realm=gravitee.io " + clientResponse.getResponseBody());
-                    policyChain.failWith(PolicyResult.failure(HttpStatusCode.UNAUTHORIZED_401,
-                            clientResponse.getResponseBody()));
+    private Handler<OAuth2Response> handleResponse(PolicyChain policyChain, Request request, Response response, ExecutionContext executionContext) {
+        return oauth2response -> {
+            if (oauth2response.isSuccess()) {
+                if (oAuth2PolicyConfiguration.isExtractPayload()) {
+                    executionContext.setAttribute(CONTEXT_ATTRIBUTE_OAUTH_PAYLOAD, oauth2response.getPayload());
                 }
-                return null;
-            }
+                policyChain.doNext(request, response);
+            } else {
+                response.headers().add(HttpHeaders.WWW_AUTHENTICATE, BEARER_TYPE+" realm=gravitee.io " + oauth2response.getPayload());
 
-            @Override
-            public void onThrowable(Throwable t) {
-                LOGGER.warn("Unexpected error while invoking remote OAuth2 server", t);
-                response.headers().add(HttpHeaders.WWW_AUTHENTICATE, BEARER_TYPE + " realm=gravitee.io " + t.getMessage());
-                policyChain.failWith(PolicyResult.failure(HttpStatusCode.SERVICE_UNAVAILABLE_503,
-                        "Service Unavailable"));
+                if (oauth2response.getThrowable() == null) {
+                    policyChain.failWith(PolicyResult.failure(HttpStatusCode.UNAUTHORIZED_401,
+                            oauth2response.getPayload()));
+                } else {
+                    policyChain.failWith(PolicyResult.failure(HttpStatusCode.SERVICE_UNAVAILABLE_503,
+                            "Service Unavailable"));
+                }
             }
         };
     }

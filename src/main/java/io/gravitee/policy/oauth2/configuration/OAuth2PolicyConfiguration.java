@@ -18,12 +18,14 @@ package io.gravitee.policy.oauth2.configuration;
 import io.gravitee.policy.api.PolicyConfiguration;
 
 /**
- * @author David BRASSELY (david at gravitee.io)
+ * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
  */
 public class OAuth2PolicyConfiguration implements PolicyConfiguration {
 
     private String oauthResource;
+
+    private boolean extractPayload = false;
 
     public String getOauthResource() {
         return oauthResource;
@@ -31,5 +33,13 @@ public class OAuth2PolicyConfiguration implements PolicyConfiguration {
 
     public void setOauthResource(String oauthResource) {
         this.oauthResource = oauthResource;
+    }
+
+    public boolean isExtractPayload() {
+        return extractPayload;
+    }
+
+    public void setExtractPayload(boolean extractPayload) {
+        this.extractPayload = extractPayload;
     }
 }
