@@ -24,7 +24,7 @@
     <artifactId>gravitee-policy-oauth2</artifactId>
     <version>1.2.0-SNAPSHOT</version>
 
-    <name>Gravitee IO - Policy - OAuth2</name>
+    <name>Gravitee.io APIM - Policy - OAuth2</name>
     <description>Description of the OAuth2 Gravitee Policy</description>
 
     <parent>
