@@ -68,7 +68,7 @@ This policy use a Gravitee.io resource to access the OAuth2 Authorization Server
 The OAuth2 resource must be defined with these properties:
 
 [source, json]
-OAuth2 Resource example:
+.OAuth2 Resource example:
 ----
  "properties" : {
     "serverURL" : {
