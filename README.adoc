@@ -70,6 +70,7 @@ The OAuth2 resource must be defined with these properties:
 [source, json]
 .OAuth2 Resource example:
 ----
+{
  "properties" : {
     "serverURL" : {
       "title": "Server URL",
@@ -135,14 +136,17 @@ The OAuth2 resource must be defined with these properties:
     "httpMethod",
     "isSecure"
   ]
+}
 ----
 
 [source, json]
-.Sample
+.OAuth2 Policy example:
 ----
-"oauth2": {
-  "oauthResource": "oauth2-resource-name",
-  "extractPayload": true
+{
+  "oauth2": {
+    "oauthResource": "oauth2-resource-name",
+    "extractPayload": true
+  }
 }
 ----
 
