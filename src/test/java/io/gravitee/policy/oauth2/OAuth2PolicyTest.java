@@ -24,7 +24,7 @@ import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.api.PolicyResult;
 import io.gravitee.policy.oauth2.configuration.OAuth2PolicyConfiguration;
 import io.gravitee.resource.api.ResourceManager;
-import io.gravitee.resource.oauth2.OAuth2Resource;
+import io.gravitee.resource.oauth2.api.OAuth2Resource;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -65,7 +65,7 @@ public class OAuth2PolicyTest {
     ResourceManager resourceManager;
 
     @Mock
-    OAuth2Resource oAuth2Resource;
+    OAuth2Resource customOAuth2Resource;
 
     @Mock
     OAuth2PolicyConfiguration oAuth2PolicyConfiguration;
@@ -80,7 +80,7 @@ public class OAuth2PolicyTest {
         Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
 
         when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
-        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(oAuth2Resource);
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(customOAuth2Resource);
         when(mockResponse.headers()).thenReturn(new HttpHeaders());
 
         policy.onRequest(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
@@ -93,7 +93,7 @@ public class OAuth2PolicyTest {
         Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
 
         when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
-        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(oAuth2Resource);
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(customOAuth2Resource);
         when(mockResponse.headers()).thenReturn(new HttpHeaders());
 
         policy.onRequest(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
@@ -113,7 +113,7 @@ public class OAuth2PolicyTest {
         Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
 
         when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
-        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(oAuth2Resource);
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(customOAuth2Resource);
         when(mockRequest.headers()).thenReturn(headers);
         when(mockResponse.headers()).thenReturn(new HttpHeaders());
 
@@ -134,7 +134,7 @@ public class OAuth2PolicyTest {
         Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
 
         when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
-        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(oAuth2Resource);
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(customOAuth2Resource);
         when(mockRequest.headers()).thenReturn(headers);
         when(mockResponse.headers()).thenReturn(new HttpHeaders());
 
@@ -159,11 +159,11 @@ public class OAuth2PolicyTest {
         when(mockResponse.headers()).thenReturn(new HttpHeaders());
         when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
         when(oAuth2PolicyConfiguration.getOauthResource()).thenReturn("oauth2");
-        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(oAuth2Resource);
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(customOAuth2Resource);
 
         policy.onRequest(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
 
-        verify(oAuth2Resource, times(1)).validate(eq(bearer), any(Handler.class));
+        verify(customOAuth2Resource, times(1)).introspect(eq(bearer), any(Handler.class));
         verify(mockExecutionContext, times(1)).setAttribute(
                 eq(Oauth2Policy.CONTEXT_ATTRIBUTE_OAUTH_ACCESS_TOKEN), eq(bearer));
     }
@@ -184,11 +184,11 @@ public class OAuth2PolicyTest {
         when(mockResponse.headers()).thenReturn(new HttpHeaders());
         when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
         when(oAuth2PolicyConfiguration.getOauthResource()).thenReturn("oauth2");
-        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(oAuth2Resource);
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(customOAuth2Resource);
 
         policy.onRequest(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
 
-        verify(oAuth2Resource, times(1)).validate(eq(bearer), any(Handler.class));
+        verify(customOAuth2Resource, times(1)).introspect(eq(bearer), any(Handler.class));
         verify(mockExecutionContext, times(1)).setAttribute(
                 eq(Oauth2Policy.CONTEXT_ATTRIBUTE_OAUTH_ACCESS_TOKEN), eq(bearer));
     }
