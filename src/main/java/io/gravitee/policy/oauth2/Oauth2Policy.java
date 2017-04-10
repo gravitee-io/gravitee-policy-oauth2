@@ -17,6 +17,7 @@ package io.gravitee.policy.oauth2;
 
 import io.gravitee.common.http.HttpHeaders;
 import io.gravitee.common.http.HttpStatusCode;
+import io.gravitee.common.http.MediaType;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
@@ -26,8 +27,8 @@ import io.gravitee.policy.api.PolicyResult;
 import io.gravitee.policy.api.annotations.OnRequest;
 import io.gravitee.policy.oauth2.configuration.OAuth2PolicyConfiguration;
 import io.gravitee.resource.api.ResourceManager;
-import io.gravitee.resource.oauth2.OAuth2Resource;
-import io.gravitee.resource.oauth2.OAuth2Response;
+import io.gravitee.resource.oauth2.api.OAuth2Resource;
+import io.gravitee.resource.oauth2.api.OAuth2Response;
 
 import java.util.Optional;
 
@@ -86,7 +87,7 @@ public class Oauth2Policy {
         executionContext.setAttribute(CONTEXT_ATTRIBUTE_OAUTH_ACCESS_TOKEN, accessToken);
 
         // Validate access token
-        oauth2.validate(accessToken, handleResponse(policyChain, request, response, executionContext));
+        oauth2.introspect(accessToken, handleResponse(policyChain, request, response, executionContext));
     }
 
     private Handler<OAuth2Response> handleResponse(PolicyChain policyChain, Request request, Response response, ExecutionContext executionContext) {
@@ -101,7 +102,7 @@ public class Oauth2Policy {
 
                 if (oauth2response.getThrowable() == null) {
                     policyChain.failWith(PolicyResult.failure(HttpStatusCode.UNAUTHORIZED_401,
-                            oauth2response.getPayload()));
+                            oauth2response.getPayload(), MediaType.APPLICATION_JSON));
                 } else {
                     policyChain.failWith(PolicyResult.failure(HttpStatusCode.SERVICE_UNAVAILABLE_503,
                             "Service Unavailable"));
