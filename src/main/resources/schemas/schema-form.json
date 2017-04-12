@@ -12,6 +12,21 @@
       "description": "Push the token endpoint payload into the 'oauth.payload' context attribute.",
       "type" : "boolean",
       "default": false
+    },
+    "checkRequiredScopes" : {
+      "title": "Check scopes",
+      "description": "Check required scopes to access the resource",
+      "type" : "boolean",
+      "default": false
+    },
+    "requiredScopes": {
+      "type" : "array",
+      "title": "Required scopes",
+      "description": "List of required scopes to access the resource.",
+      "items" : {
+        "type" : "string",
+        "title": "Scope"
+      }
     }
   },
   "required": [
