@@ -15,6 +15,9 @@
  */
 package io.gravitee.policy.oauth2;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.gravitee.common.http.HttpHeaders;
 import io.gravitee.common.http.HttpStatusCode;
 import io.gravitee.common.http.MediaType;
@@ -29,8 +32,11 @@ import io.gravitee.policy.oauth2.configuration.OAuth2PolicyConfiguration;
 import io.gravitee.resource.api.ResourceManager;
 import io.gravitee.resource.oauth2.api.OAuth2Resource;
 import io.gravitee.resource.oauth2.api.OAuth2Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.Optional;
+import java.io.IOException;
+import java.util.*;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
@@ -39,7 +45,10 @@ import java.util.Optional;
  */
 public class Oauth2Policy {
 
+    private final Logger logger = LoggerFactory.getLogger(Oauth2Policy.class);
+
     private static final String BEARER_TYPE = "Bearer";
+    static final String OAUTH_PAYLOAD_SCOPE_NODE = "scope";
     static final String CONTEXT_ATTRIBUTE_OAUTH_PAYLOAD = "oauth.payload";
     static final String CONTEXT_ATTRIBUTE_OAUTH_ACCESS_TOKEN = "oauth.access_token";
 
@@ -51,6 +60,8 @@ public class Oauth2Policy {
 
     @OnRequest
     public void onRequest(Request request, Response response, ExecutionContext executionContext, PolicyChain policyChain) {
+        logger.debug("Read access_token from request {}", request.id());
+
         OAuth2Resource oauth2 = executionContext.getComponent(ResourceManager.class).getResource(
                 oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class);
 
@@ -96,7 +107,37 @@ public class Oauth2Policy {
                 if (oAuth2PolicyConfiguration.isExtractPayload()) {
                     executionContext.setAttribute(CONTEXT_ATTRIBUTE_OAUTH_PAYLOAD, oauth2response.getPayload());
                 }
-                policyChain.doNext(request, response);
+
+                if (oAuth2PolicyConfiguration.isCheckRequiredScopes() && oAuth2PolicyConfiguration.getRequiredScopes() != null) {
+                    logger.debug("Check scopes from the given access_token");
+
+                    try {
+                        JsonNode payloadNode = new ObjectMapper().readTree(oauth2response.getPayload());
+                        JsonNode scopesNode = payloadNode.get(OAUTH_PAYLOAD_SCOPE_NODE);
+
+                        List<String> scopes = null;
+                        if (scopesNode instanceof ArrayNode) {
+                            Iterator<JsonNode> scopeIterator = scopesNode.elements();
+                            scopes = new ArrayList<>(scopesNode.size());
+                            List<String> finalScopes = scopes;
+                            scopeIterator.forEachRemaining(jsonNode -> finalScopes.add(jsonNode.asText()));
+                        } else {
+                            scopes = Arrays.asList(scopesNode.asText("").split(" "));
+                        }
+
+                        if (scopes.containsAll(oAuth2PolicyConfiguration.getRequiredScopes())) {
+                            policyChain.doNext(request, response);
+                        } else {
+                            policyChain.failWith(PolicyResult.failure(HttpStatusCode.FORBIDDEN_403,
+                                    "You're not allowed to access this resource"));
+                        }
+                    } catch (IOException e) {
+                        logger.error("Unable to check required scope from introspection endpoint payload: {}",
+                                oauth2response.getPayload());
+                    }
+                } else {
+                    policyChain.doNext(request, response);
+                }
             } else {
                 response.headers().add(HttpHeaders.WWW_AUTHENTICATE, BEARER_TYPE+" realm=gravitee.io " + oauth2response.getPayload());
 
