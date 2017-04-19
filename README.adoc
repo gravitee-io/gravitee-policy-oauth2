@@ -19,7 +19,7 @@ endif::[]
 
 == Description
 
-The OAuth2 policy checks if an access token is valid during request processing.
+The OAuth2 policy checks access token validity during request processing by doing token introspection.
 
 If the access token is valid, the request is allowed to proceed, if not the process stops and rejects the request.
 
@@ -46,7 +46,11 @@ $ curl -H "Authorization: Bearer |accessToken|" \
 
 == Configuration
 
-This policy use a Gravitee.io resource to access the OAuth2 Authorization Server.
+OAuth2 policy requires a resource to access an OAuth2 Authorization Server for token introspection.
+Currently, Gravitee.io API Management supports two types of authorization server:
+
+* <<apim_resources_oauth2_generic.adoc#, Generic OAuth2 Authorization Server>>: a resource which can be configured to cover any authorization server.
+* <<apim_resources_oauth2_am.adoc#, Gravitee.io Access Management>>: a resource which can be used to plugged easily Gravitee.io API Management with Gravitee.io Access Management with security domain support.
 
 |===
 |Property |Required |Description |Type| Default
@@ -63,81 +67,19 @@ This policy use a Gravitee.io resource to access the OAuth2 Authorization Server
 ^.^|boolean
 ^.^|false
 
+.^|checkRequiredScopes
+^.^|-
+|Should the policy check `required` scopes to access underlying resource ?
+^.^|boolean
+^.^|false
+
+
+.^|requiredScopes
+^.^|-
+|The list of scopes to check to access the resource.
+^.^|boolean
+^.^|array of string
 |===
-
-The OAuth2 resource must be defined with these properties:
-
-[source, json]
-.OAuth2 Resource example:
-----
-{
- "properties" : {
-    "serverURL" : {
-      "title": "Server URL",
-      "description": "OAuth2 Server URL.",
-      "type" : "string"
-    },
-    "httpMethod" : {
-      "title": "HTTP Method",
-      "description": "HTTP method used to validate the OAuth token.",
-      "type" : "string",
-      "enum": [
-        "GET",
-        "POST"
-      ],
-      "default": "GET"
-    },
-    "secure" : {
-      "title": "Secure",
-      "description": "HTTP / HTTPS",
-      "type" : "boolean",
-      "default": false
-    },
-    "authorizationHeaderName" : {
-      "type" : "string",
-      "title": "Authorization header",
-      "default": "Authorization"
-    },
-    "authorizationScheme" : {
-      "type" : "string",
-      "title": "Authorization scheme",
-      "default": "Basic"
-    },
-    "authorizationValue" : {
-      "title": "Authorization value",
-      "type" : "string"
-    },
-    "tokenIsSuppliedByQueryParam" : {
-      "title": "Token from HTTP query parameter",
-      "description": "Does the OAuth token is supplied using a query parameter ?",
-      "type" : "boolean",
-      "default": true
-    },
-    "tokenQueryParamName" : {
-      "title": "Query param name",
-      "description": "Query parameter used to supply OAuth token",
-      "type" : "string",
-      "default": "token"
-    },
-    "tokenIsSuppliedByHttpHeader" : {
-      "title": "Token from HTTP header",
-      "description": "Does the OAuth token is supplied using an HTTP header ?",
-      "type" : "boolean",
-      "default": false
-    },
-    "tokenHeaderName" : {
-      "description": "HTTP header used to supply OAuth token",
-      "title": "HTTP header name",
-      "type" : "string"
-    }
-  },
-  "required": [
-    "serverURL",
-    "httpMethod",
-    "isSecure"
-  ]
-}
-----
 
 [source, json]
 .OAuth2 Policy example:
@@ -145,7 +87,9 @@ The OAuth2 resource must be defined with these properties:
 {
   "oauth2": {
     "oauthResource": "oauth2-resource-name",
-    "extractPayload": true
+    "extractPayload": true,
+    "checkRequiredScopes": true,
+    "requiredScopes": ["openid", "resource:read", "resource:write"]
   }
 }
 ----
@@ -158,13 +102,20 @@ The OAuth2 resource must be defined with these properties:
 .^| ```401```
 | In case of:
 
-* No OAuth authorization server has been configured
+* No OAuth Authorization Server resource has been configured
+
 * No OAuth authorization header was supplied
+
 * No OAuth access_token was supplied
+
 * Access token can not be validated by authorization server
 
 .^| ```403```
-| Access token can not be validated because of a technical error with
+| In case of:
+
+* Access token can not be validated because of a technical error with
 authorization server.
+
+* One of the required scopes is missing while introspecting access token.
 
 |===
