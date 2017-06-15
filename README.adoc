@@ -44,6 +44,29 @@ $ curl -H "Authorization: Bearer |accessToken|" \
 
 |===
 
+=== Extract data from OAuth2 token introspection response
+
+If the introspection response payload is as follow:
+[source, json]
+----
+{
+    "active": true,
+    "client_id": "VDE",
+    "exp": 1497536237,
+    "jti": "5e075c1c-f4eb-42a5-8b56-fd367133b242",
+    "scope": "read write delete",
+    "token_type": "bearer",
+    "username": "flx"
+}
+----
+
+You can extract the `username` from payload by using JSON-path:
+[source]
+----
+{#jsonPath(#context.attributes['oauth.payload'], '$.username')}
+----
+
+
 == Configuration
 
 OAuth2 policy requires a resource to access an OAuth2 Authorization Server for token introspection.
