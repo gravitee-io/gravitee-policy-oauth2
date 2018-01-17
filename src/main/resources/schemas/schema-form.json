@@ -27,6 +27,11 @@
         "type" : "string",
         "title": "Scope"
       }
+    },
+    "scopeDelimiter" : {
+      "description": "Delimiter used between scopes (default is a whitespace)",
+      "type" : "string",
+      "default": " "
     }
   },
   "required": [
