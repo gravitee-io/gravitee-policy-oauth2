@@ -34,6 +34,8 @@ public class OAuth2PolicyConfiguration implements PolicyConfiguration {
 
     private List<String> requiredScopes = new ArrayList<>();
 
+    private String scopeDelimiter = " ";
+
     public String getOauthResource() {
         return oauthResource;
     }
@@ -64,5 +66,13 @@ public class OAuth2PolicyConfiguration implements PolicyConfiguration {
 
     public void setRequiredScopes(List<String> requiredScopes) {
         this.requiredScopes = requiredScopes;
+    }
+
+    public String getScopeDelimiter() {
+        return scopeDelimiter;
+    }
+
+    public void setScopeDelimiter(String scopeDelimiter) {
+        this.scopeDelimiter = scopeDelimiter;
     }
 }
