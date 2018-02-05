@@ -57,8 +57,6 @@ public class Oauth2Policy {
     static final String CONTEXT_ATTRIBUTE_OAUTH_ACCESS_TOKEN = CONTEXT_ATTRIBUTE_PREFIX + "access_token";
     static final String CONTEXT_ATTRIBUTE_CLIENT_ID = CONTEXT_ATTRIBUTE_PREFIX + "client_id";
 
-    static final String DEFAULT_SCOPE_SEPARATOR = " ";
-
     static final ObjectMapper MAPPER = new ObjectMapper();
 
     private OAuth2PolicyConfiguration oAuth2PolicyConfiguration;
@@ -130,7 +128,10 @@ public class Oauth2Policy {
 
                 // Check required scopes to access the resource
                 if (oAuth2PolicyConfiguration.isCheckRequiredScopes()) {
-                    if (! hasRequiredScopes(oauthResponseNode, oAuth2PolicyConfiguration.getRequiredScopes())) {
+                    OAuth2Resource oauth2 = executionContext.getComponent(ResourceManager.class).getResource(
+                            oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class);
+
+                    if (! hasRequiredScopes(oauthResponseNode, oAuth2PolicyConfiguration.getRequiredScopes(), oauth2.getScopeSeparator())) {
                         sendError(response, policyChain, "insufficient_scope",
                                 "The request requires higher privileges than provided by the access token.");
                         return;
@@ -184,7 +185,7 @@ public class Oauth2Policy {
         }
     }
 
-    static boolean hasRequiredScopes(JsonNode oauthResponseNode, List<String> requiredScopes) {
+    static boolean hasRequiredScopes(JsonNode oauthResponseNode, List<String> requiredScopes, String scopeSeparator) {
         if (requiredScopes == null) {
             return true;
         }
@@ -198,7 +199,7 @@ public class Oauth2Policy {
             List<String> finalScopes = scopes;
             scopeIterator.forEachRemaining(jsonNode -> finalScopes.add(jsonNode.asText()));
         } else {
-            scopes = Arrays.asList(scopesNode.asText().split(DEFAULT_SCOPE_SEPARATOR));
+            scopes = Arrays.asList(scopesNode.asText().split(scopeSeparator));
         }
 
         return scopes.containsAll(requiredScopes);
