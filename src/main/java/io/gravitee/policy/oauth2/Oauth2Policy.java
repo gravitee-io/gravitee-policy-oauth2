@@ -119,12 +119,9 @@ public class Oauth2Policy {
 
                 // Extract client_id
                 String clientId = oauthResponseNode.path(OAUTH_PAYLOAD_CLIENT_ID_NODE).asText();
-                if (clientId == null || clientId.trim().isEmpty()) {
-                    sendError(response, policyChain, "invalid_client", "No client_id was supplied");
-                    return;
+                if (clientId != null && !clientId.trim().isEmpty()) {
+                    executionContext.setAttribute(CONTEXT_ATTRIBUTE_CLIENT_ID, clientId);
                 }
-
-                executionContext.setAttribute(CONTEXT_ATTRIBUTE_CLIENT_ID, clientId);
 
                 // Check required scopes to access the resource
                 if (oAuth2PolicyConfiguration.isCheckRequiredScopes()) {

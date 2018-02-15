@@ -303,8 +303,8 @@ public class OAuth2PolicyTest {
         handler.handle(new OAuth2Response(true, payload));
 
         verify(mockExecutionContext, never()).setAttribute(eq(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID), anyString());
-        verify(httpHeaders).add(eq(HttpHeaders.WWW_AUTHENTICATE), anyString());
-        verify(mockPolicychain).failWith(any(PolicyResult.class));
+        verify(httpHeaders, never()).add(eq(HttpHeaders.WWW_AUTHENTICATE), anyString());
+        verify(mockPolicychain).doNext(mockRequest, mockResponse);
     }
 
     @Test
