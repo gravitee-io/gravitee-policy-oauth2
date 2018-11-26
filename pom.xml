@@ -30,7 +30,7 @@
     <parent>
         <groupId>io.gravitee</groupId>
         <artifactId>gravitee-parent</artifactId>
-        <version>13</version>
+        <version>14-SNAPSHOT</version>
     </parent>
 
     <properties>
@@ -39,8 +39,6 @@
         <gravitee-resource-api.version>1.0.0</gravitee-resource-api.version>
         <gravitee-common.version>1.8.1</gravitee-common.version>
         <gravitee-resource-oauth2-provider-api.version>1.2.0</gravitee-resource-oauth2-provider-api.version>
-        <vertx.version>3.4.1</vertx.version>
-
         <maven-assembly-plugin.version>2.5.5</maven-assembly-plugin.version>
         <async-http-client.version>2.0.2</async-http-client.version>
     </properties>
