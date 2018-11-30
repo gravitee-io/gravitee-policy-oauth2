@@ -128,7 +128,8 @@ public class Oauth2Policy {
                     OAuth2Resource oauth2 = executionContext.getComponent(ResourceManager.class).getResource(
                             oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class);
 
-                    if (! hasRequiredScopes(oauthResponseNode, oAuth2PolicyConfiguration.getRequiredScopes(), oauth2.getScopeSeparator())) {
+                    if (! hasRequiredScopes(oauthResponseNode, oAuth2PolicyConfiguration.getRequiredScopes(),
+                            oauth2.getScopeSeparator(), oAuth2PolicyConfiguration.isModeStrict())) {
                         sendError(response, policyChain, "insufficient_scope",
                                 "The request requires higher privileges than provided by the access token.");
                         return;
@@ -182,8 +183,9 @@ public class Oauth2Policy {
         }
     }
 
-    static boolean hasRequiredScopes(JsonNode oauthResponseNode, List<String> requiredScopes, String scopeSeparator) {
-        if (requiredScopes == null) {
+    static boolean hasRequiredScopes(JsonNode oauthResponseNode, List<String> requiredScopes, String scopeSeparator,
+                                     final boolean modeStrict) {
+        if (requiredScopes == null || requiredScopes.isEmpty()) {
             return true;
         }
 
@@ -199,6 +201,10 @@ public class Oauth2Policy {
             scopes = Arrays.asList(scopesNode.asText().split(scopeSeparator));
         }
 
-        return scopes.containsAll(requiredScopes);
+        if (modeStrict) {
+            return scopes.containsAll(requiredScopes) && requiredScopes.containsAll(scopes);
+        } else {
+            return scopes.stream().anyMatch(requiredScopes::contains);
+        }
     }
 }

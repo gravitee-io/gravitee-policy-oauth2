@@ -27,6 +27,12 @@
         "type" : "string",
         "title": "Scope"
       }
+    },
+    "modeStrict" : {
+      "title": "Mode strict",
+      "description": "Check required scopes to access the resource",
+      "type" : "boolean",
+      "default": true
     }
   },
   "required": [
