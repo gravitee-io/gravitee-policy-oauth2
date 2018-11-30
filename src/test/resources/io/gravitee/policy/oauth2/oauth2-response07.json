@@ -1,0 +1,4 @@
+{
+  "client_id": "my-client-id",
+  "scope": ["read"]
+}
