@@ -105,6 +105,10 @@ public class Oauth2Policy {
 
         // Validate access token
         oauth2.introspect(accessToken, handleResponse(policyChain, request, response, executionContext));
+
+        if (!oAuth2PolicyConfiguration.isPropagateAuthHeader()) {
+            request.headers().remove(HttpHeaders.AUTHORIZATION);
+        }
     }
 
     Handler<OAuth2Response> handleResponse(PolicyChain policyChain, Request request, Response response, ExecutionContext executionContext) {
