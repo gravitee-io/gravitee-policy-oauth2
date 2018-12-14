@@ -30,7 +30,13 @@
     },
     "modeStrict" : {
       "title": "Mode strict",
-      "description": "Check required scopes to access the resource",
+      "description": "Check scopes with exactly those configured",
+      "type" : "boolean",
+      "default": true
+    },
+    "propagateAuthHeader" : {
+      "title": "Propagate Authorization header",
+      "description": "Allows to propagate Authorization header to the target endpoints",
       "type" : "boolean",
       "default": true
     }

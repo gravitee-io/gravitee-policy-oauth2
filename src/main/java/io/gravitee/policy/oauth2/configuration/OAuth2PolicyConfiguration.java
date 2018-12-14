@@ -27,14 +27,11 @@ import java.util.List;
 public class OAuth2PolicyConfiguration implements PolicyConfiguration {
 
     private String oauthResource;
-
     private boolean extractPayload = false;
-
     private boolean checkRequiredScopes = false;
-
     private List<String> requiredScopes = new ArrayList<>();
-
     private boolean modeStrict = true;
+    private boolean propagateAuthHeader = true;
 
     public String getOauthResource() {
         return oauthResource;
@@ -74,5 +71,13 @@ public class OAuth2PolicyConfiguration implements PolicyConfiguration {
 
     public void setModeStrict(boolean modeStrict) {
         this.modeStrict = modeStrict;
+    }
+
+    public boolean isPropagateAuthHeader() {
+        return propagateAuthHeader;
+    }
+
+    public void setPropagateAuthHeader(boolean propagateAuthHeader) {
+        this.propagateAuthHeader = propagateAuthHeader;
     }
 }
