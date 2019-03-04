@@ -29,11 +29,10 @@ import io.gravitee.resource.api.ResourceManager;
 import io.gravitee.resource.oauth2.api.OAuth2Resource;
 import io.gravitee.resource.oauth2.api.OAuth2Response;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -44,9 +43,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.UUID;
 
-import static org.mockito.Matchers.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
-import static org.mockito.MockitoAnnotations.initMocks;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
@@ -81,11 +81,6 @@ public class OAuth2PolicyTest {
     OAuth2PolicyConfiguration oAuth2PolicyConfiguration;
 
     private static final String DEFAULT_OAUTH_SCOPE_SEPARATOR = " ";
-
-    @Before
-    public void init() {
-        initMocks(this);
-    }
 
     @Test
     public void shouldFailedIfNoOAuthResourceProvided() {
@@ -167,7 +162,6 @@ public class OAuth2PolicyTest {
 
         Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
         when(mockRequest.headers()).thenReturn(headers);
-        when(mockResponse.headers()).thenReturn(new HttpHeaders());
         when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
         when(oAuth2PolicyConfiguration.getOauthResource()).thenReturn("oauth2");
         when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(customOAuth2Resource);
@@ -191,7 +185,6 @@ public class OAuth2PolicyTest {
 
         Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
         when(mockRequest.headers()).thenReturn(headers);
-        when(mockResponse.headers()).thenReturn(new HttpHeaders());
         when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
         when(oAuth2PolicyConfiguration.getOauthResource()).thenReturn("oauth2");
         when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(customOAuth2Resource);
@@ -321,7 +314,6 @@ public class OAuth2PolicyTest {
     @Test
     public void shouldFail_goodIntrospection_noClientId() throws IOException {
         HttpHeaders httpHeaders = mock(HttpHeaders.class);
-        when(mockResponse.headers()).thenReturn(httpHeaders);
 
         Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
         Handler<OAuth2Response> handler = policy.handleResponse(mockPolicychain, mockRequest, mockResponse, mockExecutionContext);
@@ -336,8 +328,6 @@ public class OAuth2PolicyTest {
 
     @Test
     public void shouldValidate_goodIntrospection_withClientId() throws IOException {
-        HttpHeaders httpHeaders = mock(HttpHeaders.class);
-        when(mockResponse.headers()).thenReturn(httpHeaders);
         when(oAuth2PolicyConfiguration.isExtractPayload()).thenReturn(true);
 
         Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
@@ -353,8 +343,6 @@ public class OAuth2PolicyTest {
 
     @Test
     public void shouldValidate_goodIntrospection_withClientId_validScopes() throws IOException {
-        HttpHeaders httpHeaders = mock(HttpHeaders.class);
-        when(mockResponse.headers()).thenReturn(httpHeaders);
         when(oAuth2PolicyConfiguration.isCheckRequiredScopes()).thenReturn(true);
         when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
         when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(customOAuth2Resource);
