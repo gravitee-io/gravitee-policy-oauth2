@@ -39,6 +39,8 @@ import org.springframework.util.StringUtils;
 import java.io.IOException;
 import java.util.*;
 
+import static io.gravitee.gateway.api.ExecutionContext.ATTR_USER;
+
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author Titouan COMPIEGNE (titouan.compiegne at graviteesource.com)
@@ -51,6 +53,7 @@ public class Oauth2Policy {
     static final String BEARER_AUTHORIZATION_TYPE = "Bearer";
     static final String OAUTH_PAYLOAD_SCOPE_NODE = "scope";
     static final String OAUTH_PAYLOAD_CLIENT_ID_NODE = "client_id";
+    static final String OAUTH_PAYLOAD_SUB_NODE = "sub";
 
     static final String CONTEXT_ATTRIBUTE_PREFIX = "oauth.";
     static final String CONTEXT_ATTRIBUTE_OAUTH_PAYLOAD = CONTEXT_ATTRIBUTE_PREFIX + "payload";
@@ -127,11 +130,17 @@ public class Oauth2Policy {
                     executionContext.setAttribute(CONTEXT_ATTRIBUTE_CLIENT_ID, clientId);
                 }
 
+                final OAuth2Resource oauth2 = executionContext.getComponent(ResourceManager.class).getResource(
+                        oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class);
+                // Extract user
+                final String user = oauthResponseNode.path(oauth2.getUserClaim() == null ?
+                        OAUTH_PAYLOAD_SUB_NODE : oauth2.getUserClaim()).asText();
+                if (user != null && !user.trim().isEmpty()) {
+                    executionContext.setAttribute(ATTR_USER, user);
+                }
+
                 // Check required scopes to access the resource
                 if (oAuth2PolicyConfiguration.isCheckRequiredScopes()) {
-                    OAuth2Resource oauth2 = executionContext.getComponent(ResourceManager.class).getResource(
-                            oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class);
-
                     if (! hasRequiredScopes(oauthResponseNode, oAuth2PolicyConfiguration.getRequiredScopes(),
                             oauth2.getScopeSeparator(), oAuth2PolicyConfiguration.isModeStrict())) {
                         sendError(response, policyChain, "insufficient_scope",
