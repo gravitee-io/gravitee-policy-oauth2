@@ -40,6 +40,7 @@ import java.io.IOException;
 import java.util.*;
 
 import static io.gravitee.gateway.api.ExecutionContext.ATTR_USER;
+import static io.gravitee.gateway.api.ExecutionContext.ATTR_USER_ROLES;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
@@ -132,6 +133,7 @@ public class Oauth2Policy {
 
                 final OAuth2Resource oauth2 = executionContext.getComponent(ResourceManager.class).getResource(
                         oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class);
+
                 // Extract user
                 final String user = oauthResponseNode.path(oauth2.getUserClaim() == null ?
                         OAUTH_PAYLOAD_SUB_NODE : oauth2.getUserClaim()).asText();
@@ -139,10 +141,16 @@ public class Oauth2Policy {
                     executionContext.setAttribute(ATTR_USER, user);
                 }
 
+                // Extract scopes from introspection response
+                List<String> scopes = extractScopes(oauthResponseNode, oauth2.getScopeSeparator());
+                executionContext.setAttribute(ATTR_USER_ROLES, scopes);
+
                 // Check required scopes to access the resource
                 if (oAuth2PolicyConfiguration.isCheckRequiredScopes()) {
-                    if (! hasRequiredScopes(oauthResponseNode, oAuth2PolicyConfiguration.getRequiredScopes(),
-                            oauth2.getScopeSeparator(), oAuth2PolicyConfiguration.isModeStrict())) {
+                    if (! hasRequiredScopes(
+                            scopes,
+                            oAuth2PolicyConfiguration.getRequiredScopes(),
+                            oAuth2PolicyConfiguration.isModeStrict())) {
                         sendError(response, policyChain, "insufficient_scope",
                                 "The request requires higher privileges than provided by the access token.");
                         return;
@@ -196,15 +204,11 @@ public class Oauth2Policy {
         }
     }
 
-    static boolean hasRequiredScopes(JsonNode oauthResponseNode, List<String> requiredScopes, String scopeSeparator,
-                                     final boolean modeStrict) {
-        if (requiredScopes == null || requiredScopes.isEmpty()) {
-            return true;
-        }
-
+    static List<String> extractScopes(JsonNode oauthResponseNode, String scopeSeparator) {
         JsonNode scopesNode = oauthResponseNode.path(OAUTH_PAYLOAD_SCOPE_NODE);
 
         List<String> scopes;
+
         if (scopesNode instanceof ArrayNode) {
             Iterator<JsonNode> scopeIterator = scopesNode.elements();
             scopes = new ArrayList<>(scopesNode.size());
@@ -214,10 +218,23 @@ public class Oauth2Policy {
             scopes = Arrays.asList(scopesNode.asText().split(scopeSeparator));
         }
 
+        return scopes;
+    }
+
+    static boolean hasRequiredScopes(Collection<String> tokenScopes, List<String> requiredScopes,
+                                     final boolean modeStrict) {
+        if (requiredScopes == null || requiredScopes.isEmpty()) {
+            return true;
+        }
+
+        if (tokenScopes == null || tokenScopes.isEmpty()) {
+            return false;
+        }
+
         if (modeStrict) {
-            return scopes.containsAll(requiredScopes) && requiredScopes.containsAll(scopes);
+            return tokenScopes.containsAll(requiredScopes) && requiredScopes.containsAll(tokenScopes);
         } else {
-            return scopes.stream().anyMatch(requiredScopes::contains);
+            return tokenScopes.stream().anyMatch(requiredScopes::contains);
         }
     }
 }

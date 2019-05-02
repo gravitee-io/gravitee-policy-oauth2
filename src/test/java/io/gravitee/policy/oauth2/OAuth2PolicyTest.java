@@ -31,6 +31,7 @@ import io.gravitee.resource.oauth2.api.OAuth2Response;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -38,14 +39,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.UUID;
+import java.util.*;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -191,70 +189,80 @@ public class OAuth2PolicyTest {
     @Test
     public void shouldValidScopes_noRequiredScopes() throws IOException {
         JsonNode jsonNode = readJsonResource("/io/gravitee/policy/oauth2/oauth2-response01.json");
-        boolean valid = Oauth2Policy.hasRequiredScopes(jsonNode, null, DEFAULT_OAUTH_SCOPE_SEPARATOR, false);
+        Collection<String> scopes = Oauth2Policy.extractScopes(jsonNode, DEFAULT_OAUTH_SCOPE_SEPARATOR);
+        boolean valid = Oauth2Policy.hasRequiredScopes(scopes, null, false);
         Assert.assertTrue(valid);
     }
 
     @Test
     public void shouldNotValidScopes_emptyOAuthResponse() throws IOException {
         JsonNode jsonNode = readJsonResource("/io/gravitee/policy/oauth2/oauth2-response01.json");
-        boolean valid = Oauth2Policy.hasRequiredScopes(jsonNode, Collections.singletonList("read"), DEFAULT_OAUTH_SCOPE_SEPARATOR, false);
+        Collection<String> scopes = Oauth2Policy.extractScopes(jsonNode, DEFAULT_OAUTH_SCOPE_SEPARATOR);
+        boolean valid = Oauth2Policy.hasRequiredScopes(scopes, Collections.singletonList("read"), false);
         Assert.assertFalse(valid);
     }
 
     @Test
     public void shouldValidScopes_emptyOAuthResponse() throws IOException {
         JsonNode jsonNode = readJsonResource("/io/gravitee/policy/oauth2/oauth2-response02.json");
-        boolean valid = Oauth2Policy.hasRequiredScopes(jsonNode, Collections.singletonList("read"), DEFAULT_OAUTH_SCOPE_SEPARATOR, false);
+        Collection<String> scopes = Oauth2Policy.extractScopes(jsonNode, DEFAULT_OAUTH_SCOPE_SEPARATOR);
+        boolean valid = Oauth2Policy.hasRequiredScopes(scopes, Collections.singletonList("read"), false);
         Assert.assertTrue(valid);
     }
 
     @Test
     public void shouldValidScopes_stringOfScopes() throws IOException {
         JsonNode jsonNode = readJsonResource("/io/gravitee/policy/oauth2/oauth2-response04.json");
-        boolean valid = Oauth2Policy.hasRequiredScopes(jsonNode, Collections.singletonList("read"), DEFAULT_OAUTH_SCOPE_SEPARATOR, false);
+        Collection<String> scopes = Oauth2Policy.extractScopes(jsonNode, DEFAULT_OAUTH_SCOPE_SEPARATOR);
+        boolean valid = Oauth2Policy.hasRequiredScopes(scopes, Collections.singletonList("read"), false);
         Assert.assertTrue(valid);
     }
 
     @Test
     public void shouldValidScopes_stringOfScopes_customSeparator() throws IOException {
         JsonNode jsonNode = readJsonResource("/io/gravitee/policy/oauth2/oauth2-response06.json");
-        boolean valid = Oauth2Policy.hasRequiredScopes(jsonNode, Collections.singletonList("read"), ",", false);
+        Collection<String> scopes = Oauth2Policy.extractScopes(jsonNode, ",");
+        boolean valid = Oauth2Policy.hasRequiredScopes(scopes, Collections.singletonList("read"), false);
         Assert.assertTrue(valid);
     }
 
     @Test
     public void shouldValidScopes_arrayOfScope() throws IOException {
         JsonNode jsonNode = readJsonResource("/io/gravitee/policy/oauth2/oauth2-response05.json");
-        boolean valid = Oauth2Policy.hasRequiredScopes(jsonNode, Collections.singletonList("read"), DEFAULT_OAUTH_SCOPE_SEPARATOR, false);
+        Collection<String> scopes = Oauth2Policy.extractScopes(jsonNode, DEFAULT_OAUTH_SCOPE_SEPARATOR);
+        boolean valid = Oauth2Policy.hasRequiredScopes(scopes, Collections.singletonList("read"), false);
         Assert.assertTrue(valid);
     }
 
     @Test
     public void shouldValidScopes_arrayOfScopes() throws IOException {
         JsonNode jsonNode = readJsonResource("/io/gravitee/policy/oauth2/oauth2-response07.json");
-        boolean valid = Oauth2Policy.hasRequiredScopes(jsonNode, Arrays.asList("read", "write"), DEFAULT_OAUTH_SCOPE_SEPARATOR, false);
+        Collection<String> scopes = Oauth2Policy.extractScopes(jsonNode, DEFAULT_OAUTH_SCOPE_SEPARATOR);
+        boolean valid = Oauth2Policy.hasRequiredScopes(scopes, Arrays.asList("read", "write"), false);
         Assert.assertTrue(valid);
     }
 
     @Test
     public void shouldValidScopes_arrayOfScopes_strict() throws IOException {
         JsonNode jsonNode = readJsonResource("/io/gravitee/policy/oauth2/oauth2-response05.json");
-        boolean valid = Oauth2Policy.hasRequiredScopes(jsonNode, Arrays.asList("read", "write", "admin"), DEFAULT_OAUTH_SCOPE_SEPARATOR, true);
+        Collection<String> scopes = Oauth2Policy.extractScopes(jsonNode, DEFAULT_OAUTH_SCOPE_SEPARATOR);
+        boolean valid = Oauth2Policy.hasRequiredScopes(scopes, Arrays.asList("read", "write", "admin"), true);
         Assert.assertTrue(valid);
     }
 
     @Test
     public void shouldInvalidScopes_arrayOfScope_strict() throws IOException {
         JsonNode jsonNode = readJsonResource("/io/gravitee/policy/oauth2/oauth2-response05.json");
-        boolean valid = Oauth2Policy.hasRequiredScopes(jsonNode, Collections.singletonList("read"), DEFAULT_OAUTH_SCOPE_SEPARATOR, true);
+        Collection<String> scopes = Oauth2Policy.extractScopes(jsonNode, DEFAULT_OAUTH_SCOPE_SEPARATOR);
+        boolean valid = Oauth2Policy.hasRequiredScopes(scopes, Collections.singletonList("read"), true);
         Assert.assertFalse(valid);
     }
 
     @Test
     public void shouldInvalidScopes_arrayOfScopes_strict() throws IOException {
         JsonNode jsonNode = readJsonResource("/io/gravitee/policy/oauth2/oauth2-response05.json");
-        boolean valid = Oauth2Policy.hasRequiredScopes(jsonNode, Arrays.asList("read", "write"), DEFAULT_OAUTH_SCOPE_SEPARATOR, true);
+        Collection<String> scopes = Oauth2Policy.extractScopes(jsonNode, DEFAULT_OAUTH_SCOPE_SEPARATOR);
+        boolean valid = Oauth2Policy.hasRequiredScopes(scopes, Arrays.asList("read", "write"), true);
         Assert.assertFalse(valid);
     }
 
@@ -312,6 +320,7 @@ public class OAuth2PolicyTest {
         when(oAuth2PolicyConfiguration.getOauthResource()).thenReturn("oauth2");
         when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
         when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(customOAuth2Resource);
+        when(customOAuth2Resource.getScopeSeparator()).thenReturn(DEFAULT_OAUTH_SCOPE_SEPARATOR);
         Handler<OAuth2Response> handler = policy.handleResponse(mockPolicychain, mockRequest, mockResponse, mockExecutionContext);
 
         String payload = readResource("/io/gravitee/policy/oauth2/oauth2-response03.json");
@@ -329,6 +338,8 @@ public class OAuth2PolicyTest {
         Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
         when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
         when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(customOAuth2Resource);
+        when(customOAuth2Resource.getScopeSeparator()).thenReturn(DEFAULT_OAUTH_SCOPE_SEPARATOR);
+
         Handler<OAuth2Response> handler = policy.handleResponse(mockPolicychain, mockRequest, mockResponse, mockExecutionContext);
 
         String payload = readResource("/io/gravitee/policy/oauth2/oauth2-response04.json");
@@ -336,6 +347,15 @@ public class OAuth2PolicyTest {
 
         verify(mockExecutionContext).setAttribute(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID, "my-client-id");
         verify(mockExecutionContext).setAttribute(Oauth2Policy.CONTEXT_ATTRIBUTE_OAUTH_PAYLOAD, payload);
+        verify(mockExecutionContext).setAttribute(eq(ExecutionContext.ATTR_USER_ROLES), argThat(new ArgumentMatcher<List<String>>() {
+            @Override
+            public boolean matches(List<String> scopes) {
+                return
+                        scopes.get(0).equals("read") &&
+                                scopes.get(1).equals("write") &&
+                                scopes.get(2).equals("admin");
+            }
+        }));
         verify(mockPolicychain).doNext(mockRequest, mockResponse);
     }
 
