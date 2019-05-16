@@ -140,5 +140,40 @@ Currently, Gravitee.io API Management supports two types of authorization server
 authorization server.
 
 * One of the required scopes is missing while introspecting access token.
+|===
+
+== Errors
+
+If you're looking to override the default response provided by the policy, you can do it
+thanks to the response templates feature. These templates must be define at the API level (see `Response Templates`
+from the `Proxy` menu).
+
+Here are the error keys send by this policy:
+
+[cols="2*", options="header"]
+|===
+^|Key
+^|Parameters
+
+.^|OAUTH2_MISSING_SERVER
+^.^|-
+
+.^|OAUTH2_MISSING_HEADER
+^.^|-
+
+.^|OAUTH2_MISSING_ACCESS_TOKEN
+^.^|-
+
+.^|OAUTH2_INVALID_ACCESS_TOKEN
+^.^|-
+
+.^|OAUTH2_INVALID_SERVER_RESPONSE
+^.^|-
+
+.^|OAUTH2_INSUFFICIENT_SCOPE
+^.^|-
+
+.^|OAUTH2_SERVER_UNAVAILABLE
+^.^|-
 
 |===

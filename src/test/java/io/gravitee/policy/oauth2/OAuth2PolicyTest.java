@@ -17,12 +17,12 @@ package io.gravitee.policy.oauth2;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.gravitee.common.http.HttpHeaders;
+import io.gravitee.common.http.HttpStatusCode;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
 import io.gravitee.gateway.api.handler.Handler;
 import io.gravitee.policy.api.PolicyChain;
-import io.gravitee.policy.api.PolicyResult;
 import io.gravitee.policy.oauth2.configuration.OAuth2PolicyConfiguration;
 import io.gravitee.resource.api.ResourceConfiguration;
 import io.gravitee.resource.api.ResourceManager;
@@ -81,7 +81,8 @@ public class OAuth2PolicyTest {
 
         policy.onRequest(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
 
-        verify(mockPolicychain).failWith(any(PolicyResult.class));
+        verify(mockPolicychain).failWith(argThat(result -> result.statusCode() == HttpStatusCode.UNAUTHORIZED_401
+                && Oauth2Policy.OAUTH2_MISSING_SERVER_KEY.equals(result.key())));
     }
 
     @Test
@@ -95,7 +96,8 @@ public class OAuth2PolicyTest {
 
         policy.onRequest(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
 
-        verify(mockPolicychain).failWith(any(PolicyResult.class));
+        verify(mockPolicychain).failWith(argThat(result -> result.statusCode() == HttpStatusCode.UNAUTHORIZED_401
+                && Oauth2Policy.OAUTH2_MISSING_HEADER_KEY.equals(result.key())));
     }
 
     @Test
@@ -116,7 +118,8 @@ public class OAuth2PolicyTest {
 
         policy.onRequest(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
 
-        verify(mockPolicychain).failWith(any(PolicyResult.class));
+        verify(mockPolicychain).failWith(argThat(result -> result.statusCode() == HttpStatusCode.UNAUTHORIZED_401
+                && Oauth2Policy.OAUTH2_MISSING_HEADER_KEY.equals(result.key())));
     }
 
     @Test
@@ -137,7 +140,8 @@ public class OAuth2PolicyTest {
 
         policy.onRequest(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
 
-        verify(mockPolicychain).failWith(any(PolicyResult.class));
+        verify(mockPolicychain).failWith(argThat(result -> result.statusCode() == HttpStatusCode.UNAUTHORIZED_401
+                && Oauth2Policy.OAUTH2_MISSING_ACCESS_TOKEN_KEY.equals(result.key())));
     }
 
     @Test
@@ -279,7 +283,9 @@ public class OAuth2PolicyTest {
 
         verify(mockExecutionContext, never()).setAttribute(eq(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID), anyString());
         verify(httpHeaders).add(eq(HttpHeaders.WWW_AUTHENTICATE), anyString());
-        verify(mockPolicychain).failWith(any(PolicyResult.class));
+
+        verify(mockPolicychain).failWith(argThat(result -> result.statusCode() == HttpStatusCode.UNAUTHORIZED_401
+                && Oauth2Policy.OAUTH2_INVALID_ACCESS_TOKEN_KEY.equals(result.key())));
     }
 
     @Test
@@ -294,7 +300,9 @@ public class OAuth2PolicyTest {
 
         verify(mockExecutionContext, never()).setAttribute(eq(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID), anyString());
         verify(httpHeaders).add(eq(HttpHeaders.WWW_AUTHENTICATE), anyString());
-        verify(mockPolicychain).failWith(any(PolicyResult.class));
+
+        verify(mockPolicychain).failWith(argThat(result -> result.statusCode() == HttpStatusCode.SERVICE_UNAVAILABLE_503
+                && Oauth2Policy.OAUTH2_SERVER_UNAVAILABLE_KEY.equals(result.key())));
     }
 
     @Test
@@ -309,7 +317,9 @@ public class OAuth2PolicyTest {
 
         verify(mockExecutionContext, never()).setAttribute(eq(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID), anyString());
         verify(httpHeaders).add(eq(HttpHeaders.WWW_AUTHENTICATE), anyString());
-        verify(mockPolicychain).failWith(any(PolicyResult.class));
+
+        verify(mockPolicychain).failWith(argThat(result -> result.statusCode() == HttpStatusCode.UNAUTHORIZED_401
+                && Oauth2Policy.OAUTH2_INVALID_SERVER_RESPONSE_KEY.equals(result.key())));
     }
 
     @Test
@@ -392,7 +402,8 @@ public class OAuth2PolicyTest {
         String payload = readResource("/io/gravitee/policy/oauth2/oauth2-response04.json");
         handler.handle(new OAuth2Response(true, payload));
 
-        verify(mockPolicychain).failWith(any(PolicyResult.class));
+        verify(mockPolicychain).failWith(argThat(result -> result.statusCode() == HttpStatusCode.UNAUTHORIZED_401
+                && Oauth2Policy.OAUTH2_INSUFFICIENT_SCOPE_KEY.equals(result.key())));
     }
 
     private JsonNode readJsonResource(String resource) throws IOException {
