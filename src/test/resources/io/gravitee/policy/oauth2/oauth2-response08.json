@@ -1,0 +1,4 @@
+{
+  "client_id": "my-client-id",
+  "scope": "read functional-settings openid selling-prices country_lu update sites delete products companies country_corp nomenclatures create administrate country_pl"
+}
