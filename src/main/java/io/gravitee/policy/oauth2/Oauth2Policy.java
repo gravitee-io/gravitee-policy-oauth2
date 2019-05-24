@@ -61,6 +61,14 @@ public class Oauth2Policy {
     static final String CONTEXT_ATTRIBUTE_OAUTH_ACCESS_TOKEN = CONTEXT_ATTRIBUTE_PREFIX + "access_token";
     static final String CONTEXT_ATTRIBUTE_CLIENT_ID = CONTEXT_ATTRIBUTE_PREFIX + "client_id";
 
+    static final String OAUTH2_MISSING_SERVER_KEY = "OAUTH2_MISSING_SERVER";
+    static final String OAUTH2_MISSING_HEADER_KEY = "OAUTH2_MISSING_HEADER";
+    static final String OAUTH2_MISSING_ACCESS_TOKEN_KEY = "OAUTH2_MISSING_ACCESS_TOKEN";
+    static final String OAUTH2_INVALID_ACCESS_TOKEN_KEY = "OAUTH2_INVALID_ACCESS_TOKEN";
+    static final String OAUTH2_INVALID_SERVER_RESPONSE_KEY = "OAUTH2_INVALID_SERVER_RESPONSE";
+    static final String OAUTH2_INSUFFICIENT_SCOPE_KEY = "OAUTH2_INSUFFICIENT_SCOPE";
+    static final String OAUTH2_SERVER_UNAVAILABLE_KEY = "OAUTH2_SERVER_UNAVAILABLE";
+
     static final ObjectMapper MAPPER = new ObjectMapper();
 
     private OAuth2PolicyConfiguration oAuth2PolicyConfiguration;
@@ -77,7 +85,8 @@ public class Oauth2Policy {
                 oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class);
 
         if (oauth2 == null) {
-            policyChain.failWith(PolicyResult.failure(HttpStatusCode.UNAUTHORIZED_401,
+            policyChain.failWith(PolicyResult.failure(OAUTH2_MISSING_SERVER_KEY,
+                    HttpStatusCode.UNAUTHORIZED_401,
                     "No OAuth authorization server has been configured"));
             return;
         }
@@ -85,7 +94,12 @@ public class Oauth2Policy {
         List<String> authorizationHeaders = request.headers().get(HttpHeaders.AUTHORIZATION);
 
         if (authorizationHeaders == null || authorizationHeaders.isEmpty()) {
-            sendError(response, policyChain, "invalid_request", "No OAuth authorization header was supplied");
+            sendError(
+                    OAUTH2_MISSING_HEADER_KEY,
+                    response,
+                    policyChain,
+                    "invalid_request",
+                    "No OAuth authorization header was supplied");
             return;
         }
 
@@ -94,13 +108,23 @@ public class Oauth2Policy {
                 .filter(h -> StringUtils.startsWithIgnoreCase(h, BEARER_AUTHORIZATION_TYPE))
                 .findFirst();
         if (!optionalHeaderAccessToken.isPresent()) {
-            sendError(response, policyChain, "invalid_request", "No OAuth authorization header was supplied");
+            sendError(
+                    OAUTH2_MISSING_HEADER_KEY,
+                    response,
+                    policyChain,
+                    "invalid_request",
+                    "No OAuth authorization header was supplied");
             return;
         }
 
         String accessToken = optionalHeaderAccessToken.get().substring(BEARER_AUTHORIZATION_TYPE.length()).trim();
         if (accessToken.isEmpty()) {
-            sendError(response, policyChain, "invalid_request", "No OAuth access token was supplied");
+            sendError(
+                    OAUTH2_MISSING_ACCESS_TOKEN_KEY,
+                    response,
+                    policyChain,
+                    "invalid_request",
+                    "No OAuth access token was supplied");
             return;
         }
 
@@ -121,7 +145,12 @@ public class Oauth2Policy {
                 JsonNode oauthResponseNode = readPayload(oauth2response.getPayload());
 
                 if (oauthResponseNode == null) {
-                    sendError(response, policyChain, "server_error", "Invalid response from authorization server");
+                    sendError(
+                            OAUTH2_INVALID_SERVER_RESPONSE_KEY,
+                            response,
+                            policyChain,
+                            "server_error",
+                            "Invalid response from authorization server");
                     return;
                 }
 
@@ -151,7 +180,11 @@ public class Oauth2Policy {
                             scopes,
                             oAuth2PolicyConfiguration.getRequiredScopes(),
                             oAuth2PolicyConfiguration.isModeStrict())) {
-                        sendError(response, policyChain, "insufficient_scope",
+                        sendError(
+                                OAUTH2_INSUFFICIENT_SCOPE_KEY,
+                                response,
+                                policyChain,
+                                "insufficient_scope",
                                 "The request requires higher privileges than provided by the access token.");
                         return;
                     }
@@ -168,10 +201,12 @@ public class Oauth2Policy {
                 response.headers().add(HttpHeaders.WWW_AUTHENTICATE, BEARER_AUTHORIZATION_TYPE + " realm=gravitee.io ");
 
                 if (oauth2response.getThrowable() == null) {
-                    policyChain.failWith(PolicyResult.failure(HttpStatusCode.UNAUTHORIZED_401,
+                    policyChain.failWith(PolicyResult.failure(OAUTH2_INVALID_ACCESS_TOKEN_KEY,
+                            HttpStatusCode.UNAUTHORIZED_401,
                             oauth2response.getPayload(), MediaType.APPLICATION_JSON));
                 } else {
-                    policyChain.failWith(PolicyResult.failure(HttpStatusCode.SERVICE_UNAVAILABLE_503,
+                    policyChain.failWith(PolicyResult.failure(OAUTH2_SERVER_UNAVAILABLE_KEY,
+                            HttpStatusCode.SERVICE_UNAVAILABLE_503,
                             "temporarily_unavailable"));
                 }
             }
@@ -186,13 +221,13 @@ public class Oauth2Policy {
      *      error="invalid_token",
      *      error_description="The access token expired"
      */
-    private void sendError(Response response, PolicyChain policyChain, String error, String description) {
+    private void sendError(String responseKey, Response response, PolicyChain policyChain, String error, String description) {
         String headerValue = BEARER_AUTHORIZATION_TYPE +
                 " realm=\"gravitee.io\"," +
                 " error=\"" + error + "\"," +
                 " error_description=\"" + description + "\"";
         response.headers().add(HttpHeaders.WWW_AUTHENTICATE, headerValue);
-        policyChain.failWith(PolicyResult.failure(HttpStatusCode.UNAUTHORIZED_401, null));
+        policyChain.failWith(PolicyResult.failure(responseKey, HttpStatusCode.UNAUTHORIZED_401, null));
     }
 
     private JsonNode readPayload(String oauthPayload) {
