@@ -204,20 +204,20 @@ public class Oauth2Policy {
 
         JsonNode scopesNode = oauthResponseNode.path(OAUTH_PAYLOAD_SCOPE_NODE);
 
-        List<String> scopes;
+        List<String> tokenScopes;
         if (scopesNode instanceof ArrayNode) {
             Iterator<JsonNode> scopeIterator = scopesNode.elements();
-            scopes = new ArrayList<>(scopesNode.size());
-            List<String> finalScopes = scopes;
+            tokenScopes = new ArrayList<>(scopesNode.size());
+            List<String> finalScopes = tokenScopes;
             scopeIterator.forEachRemaining(jsonNode -> finalScopes.add(jsonNode.asText()));
         } else {
-            scopes = Arrays.asList(scopesNode.asText().split(scopeSeparator));
+            tokenScopes = Arrays.asList(scopesNode.asText().split(scopeSeparator));
         }
 
         if (modeStrict) {
-            return scopes.containsAll(requiredScopes) && requiredScopes.containsAll(scopes);
+            return tokenScopes.containsAll(requiredScopes);
         } else {
-            return scopes.stream().anyMatch(requiredScopes::contains);
+            return tokenScopes.stream().anyMatch(requiredScopes::contains);
         }
     }
 }
