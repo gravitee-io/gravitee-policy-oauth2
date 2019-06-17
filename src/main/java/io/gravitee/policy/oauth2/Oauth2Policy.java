@@ -267,7 +267,7 @@ public class Oauth2Policy {
         }
 
         if (modeStrict) {
-            return tokenScopes.containsAll(requiredScopes) && requiredScopes.containsAll(tokenScopes);
+            return tokenScopes.containsAll(requiredScopes);
         } else {
             return tokenScopes.stream().anyMatch(requiredScopes::contains);
         }
