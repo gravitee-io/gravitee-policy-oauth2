@@ -81,6 +81,12 @@ public class Oauth2Policy {
     public void onRequest(Request request, Response response, ExecutionContext executionContext, PolicyChain policyChain) {
         logger.debug("Read access_token from request {}", request.id());
 
+        oAuth2PolicyConfiguration.setOauthResource(
+            executionContext.getTemplateEngine()
+                .getValue(oAuth2PolicyConfiguration.getOauthResource(), String.class)
+        );
+
+
         OAuth2Resource oauth2 = executionContext.getComponent(ResourceManager.class).getResource(
                 oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class);
 
