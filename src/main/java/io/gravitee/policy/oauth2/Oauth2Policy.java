@@ -137,6 +137,7 @@ public class Oauth2Policy {
                         OAUTH_PAYLOAD_SUB_NODE : oauth2.getUserClaim()).asText();
                 if (user != null && !user.trim().isEmpty()) {
                     executionContext.setAttribute(ATTR_USER, user);
+                    request.metrics().setUser(user);
                 }
 
                 // Check required scopes to access the resource
