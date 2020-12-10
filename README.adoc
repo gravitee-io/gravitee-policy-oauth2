@@ -1,4 +1,4 @@
-= OAuth2 Policy
+= OAuth2 policy
 
 ifdef::env-github[]
 image:https://ci.gravitee.io/buildStatus/icon?job=gravitee-io/gravitee-policy-oauth2/master["Build status", link="https://ci.gravitee.io/job/gravitee-io/job/gravitee-policy-oauth2/"]
@@ -19,11 +19,11 @@ endif::[]
 
 == Description
 
-The OAuth2 policy checks access token validity during request processing by doing token introspection.
+You can use the `oauth2` policy to check access token validity during request processing using token introspection.
 
-If the access token is valid, the request is allowed to proceed, if not the process stops and rejects the request.
+If the access token is valid, the request is allowed to proceed. If not, the process stops and rejects the request.
 
-The access token must be supply in the ```Authorization``` HTTP request header :
+The access token must be supplied in the ```Authorization``` HTTP request header:
 
 [source, shell]
 ----
@@ -40,13 +40,13 @@ $ curl -H "Authorization: Bearer |accessToken|" \
 |Access token extracted from ```Authorization``` HTTP header.
 
 .^|oauth.payload
-|Payload from token endpoint / authorization server. Useful when you want to parse and extract data from it. Only if `extractPayload` is enabled from policy configuration.
+|Payload from token endpoint / authorization server, useful when you want to parse and extract data from it. Only if `extractPayload` is enabled in policy configuration.
 
 |===
 
-=== Extract data from OAuth2 token introspection response
+== Examples
 
-If the introspection response payload is as follow:
+Given the following introspection response payload:
 [source, json]
 ----
 {
@@ -60,7 +60,7 @@ If the introspection response payload is as follow:
 }
 ----
 
-You can extract the `username` from payload by using JSON-path:
+You can extract the `username` from the payload using the following JsonPath:
 [source]
 ----
 {#jsonPath(#context.attributes['oauth.payload'], '$.username')}
@@ -69,43 +69,44 @@ You can extract the `username` from payload by using JSON-path:
 
 == Configuration
 
-OAuth2 policy requires a resource to access an OAuth2 Authorization Server for token introspection.
-Currently, Gravitee.io API Management supports two types of authorization server:
+The OAuth2 policy requires a resource to access an OAuth2 Authorization Server for token introspection.
+APIM supports two types of authorization server:
 
-* <<apim_resources_oauth2_generic.adoc#, Generic OAuth2 Authorization Server>>: a resource which can be configured to cover any authorization server.
-* <<apim_resources_oauth2_am.adoc#, Gravitee.io Access Management>>: a resource which can be used to plugged easily Gravitee.io API Management with Gravitee.io Access Management with security domain support.
+* <<apim_resources_oauth2_generic.adoc#, Generic OAuth2 Authorization Server>> -- a resource which can be configured to cover any authorization server.
+* <<apim_resources_oauth2_am.adoc#, Gravitee.io Access Management>> -- a resource which can be easily plugged into APIM using Gravitee.io Access Management with security domain support.
 
 |===
 |Property |Required |Description |Type| Default
 
 .^|oauthResource
 ^.^|X
-|The OAuth2 resource used to validate access_token. This must reference a valid Gravitee.io OAuth2 resource.
+|The OAuth2 resource used to validate `access_token`. This must reference a valid Gravitee.io OAuth2 resource.
 ^.^|string
 |
 
 .^|extractPayload
 ^.^|-
-|When access token is validated, the token endpoint payload is saved under the ```oauth.payload``` context attribute.
+|When the access token is validated, the token endpoint payload is saved in the ```oauth.payload``` context attribute
 ^.^|boolean
 ^.^|false
 
 .^|checkRequiredScopes
 ^.^|-
-|Should the policy check `required` scopes to access underlying resource ?
+|Whether the policy needs to check `required` scopes to access the underlying resource
 ^.^|boolean
 ^.^|false
 
 
 .^|requiredScopes
 ^.^|-
-|The list of scopes to check to access the resource.
+|List of scopes to check to access the resource
 ^.^|boolean
 ^.^|array of string
 |===
 
+=== Configuration example
+
 [source, json]
-.OAuth2 Policy example:
 ----
 {
   "oauth2": {
@@ -117,39 +118,42 @@ Currently, Gravitee.io API Management supports two types of authorization server
 }
 ----
 
-== Http Status Code
+== Errors
+
+=== HTTP status code
 
 |===
 |Code |Message
 
 .^| ```401```
-| In case of:
+| Issue encountered:
 
 * No OAuth Authorization Server resource has been configured
 
 * No OAuth authorization header was supplied
 
-* No OAuth access_token was supplied
+* No OAuth access token was supplied
 
 * Access token can not be validated by authorization server
 
 .^| ```403```
-| In case of:
+| Issue encountered:
 
 * Access token can not be validated because of a technical error with
-authorization server.
+authorization server
 
-* One of the required scopes is missing while introspecting access token.
+* One of the required scopes was missing while introspecting access token
 
 |===
 
-== Errors
+=== Default response override
 
-If you're looking to override the default response provided by the policy, you can do it
-thanks to the response templates feature. These templates must be define at the API level (see `Response Templates`
-from the `Proxy` menu).
+You can use the response template feature to override the default response provided by the policy. These templates must be defined at the API level (see the API Console *Response Templates*
+option in the API *Proxy* menu).
 
-Here are the error keys send by this policy:
+=== Error keys
+
+The error keys sent by this policy are as follows:
 
 [cols="2*", options="header"]
 |===
