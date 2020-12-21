@@ -4,7 +4,7 @@
   "properties": {
     "oauthResource": {
       "title": "OAuth2 resource",
-      "description": "OAuth2 resource used to validate token.",
+      "description": "OAuth2 resource used to validate token. Supports EL.",
       "type": "string",
       "x-schema-form": {
         "event": {
