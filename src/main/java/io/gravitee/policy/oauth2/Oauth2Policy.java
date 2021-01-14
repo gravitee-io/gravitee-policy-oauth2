@@ -222,7 +222,15 @@ public class Oauth2Policy {
 
     /**
      * As per https://tools.ietf.org/html/rfc6750#page-7:
-     *
+     *   insufficient_scope
+     *          The request requires higher privileges than provided by the
+     *          access token.  The resource server SHOULD respond with the HTTP
+     *          403 (Forbidden)
+     *   invalid_token
+     *          The access token provided is expired, revoked, malformed, or
+     *          invalid for other reasons.  The resource SHOULD respond with
+     *          the HTTP 401
+     *   Example:
      *      HTTP/1.1 401 Unauthorized
      *      WWW-Authenticate: Bearer realm="example",
      *      error="invalid_token",
@@ -234,7 +242,12 @@ public class Oauth2Policy {
                 " error=\"" + error + "\"," +
                 " error_description=\"" + description + "\"";
         response.headers().add(HttpHeaders.WWW_AUTHENTICATE, headerValue);
-        policyChain.failWith(PolicyResult.failure(responseKey, HttpStatusCode.UNAUTHORIZED_401, null));
+
+        if (responseKey.equals(OAUTH2_INSUFFICIENT_SCOPE_KEY) || responseKey.equals(OAUTH2_INVALID_SERVER_RESPONSE_KEY)) {
+            policyChain.failWith(PolicyResult.failure(responseKey, HttpStatusCode.FORBIDDEN_403, null));
+        } else {
+            policyChain.failWith(PolicyResult.failure(responseKey, HttpStatusCode.UNAUTHORIZED_401, null));
+        }
     }
 
     private JsonNode readPayload(String oauthPayload) {

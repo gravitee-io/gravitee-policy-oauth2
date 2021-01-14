@@ -339,7 +339,7 @@ public class OAuth2PolicyTest {
         verify(mockExecutionContext, never()).setAttribute(eq(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID), anyString());
         verify(httpHeaders).add(eq(HttpHeaders.WWW_AUTHENTICATE), anyString());
 
-        verify(mockPolicychain).failWith(argThat(result -> result.statusCode() == HttpStatusCode.UNAUTHORIZED_401
+        verify(mockPolicychain).failWith(argThat(result -> result.statusCode() == HttpStatusCode.FORBIDDEN_403
                 && Oauth2Policy.OAUTH2_INVALID_SERVER_RESPONSE_KEY.equals(result.key())));
     }
 
@@ -423,7 +423,7 @@ public class OAuth2PolicyTest {
         String payload = readResource("/io/gravitee/policy/oauth2/oauth2-response04.json");
         handler.handle(new OAuth2Response(true, payload));
 
-        verify(mockPolicychain).failWith(argThat(result -> result.statusCode() == HttpStatusCode.UNAUTHORIZED_401
+        verify(mockPolicychain).failWith(argThat(result -> result.statusCode() == HttpStatusCode.FORBIDDEN_403
                 && Oauth2Policy.OAUTH2_INSUFFICIENT_SCOPE_KEY.equals(result.key())));
     }
 
