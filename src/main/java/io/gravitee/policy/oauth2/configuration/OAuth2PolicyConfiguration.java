@@ -26,6 +26,7 @@ import java.util.List;
 public class OAuth2PolicyConfiguration implements PolicyConfiguration {
 
     private String oauthResource;
+    private String oauthCacheResource;
     private boolean extractPayload = false;
     private boolean checkRequiredScopes = false;
     private List<String> requiredScopes = new ArrayList<>();
@@ -78,5 +79,13 @@ public class OAuth2PolicyConfiguration implements PolicyConfiguration {
 
     public void setPropagateAuthHeader(boolean propagateAuthHeader) {
         this.propagateAuthHeader = propagateAuthHeader;
+    }
+
+    public String getOauthCacheResource() {
+        return oauthCacheResource;
+    }
+
+    public void setOauthCacheResource(String oauthCacheResource) {
+        this.oauthCacheResource = oauthCacheResource;
     }
 }
