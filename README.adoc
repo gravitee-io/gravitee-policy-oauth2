@@ -84,6 +84,12 @@ APIM supports two types of authorization server:
 ^.^|string
 |
 
+.^|oauthCacheResource
+^.^|-
+|The Cache resource used to store the `access_token`. This must reference a valid Gravitee.io Cache resource.
+^.^|string
+|
+
 .^|extractPayload
 ^.^|-
 |When the access token is validated, the token endpoint payload is saved in the ```oauth.payload``` context attribute
@@ -111,6 +117,7 @@ APIM supports two types of authorization server:
 {
   "oauth2": {
     "oauthResource": "oauth2-resource-name",
+    "oauthCacheResource": "cache-resource-name",
     "extractPayload": true,
     "checkRequiredScopes": true,
     "requiredScopes": ["openid", "resource:read", "resource:write"]

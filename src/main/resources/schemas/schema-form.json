@@ -10,7 +10,20 @@
         "event": {
           "name": "fetch-resources",
           "regexTypes":  "^oauth2"
-        }
+        },
+        "placeholder": "oauth-resource-name"
+      }
+    },
+    "oauthCacheResource": {
+      "title": "Cache resource",
+      "description": "Cache resource used to store the tokens.",
+      "type": "string",
+      "x-schema-form": {
+        "event": {
+          "name": "fetch-resources",
+          "regexTypes":  "^cache"
+        },
+        "placeholder": "cache-resource-name"
       }
     },
     "extractPayload": {

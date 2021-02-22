@@ -32,6 +32,9 @@ import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.oauth2.configuration.OAuth2PolicyConfiguration;
 import io.gravitee.resource.api.ResourceConfiguration;
 import io.gravitee.resource.api.ResourceManager;
+import io.gravitee.resource.cache.Cache;
+import io.gravitee.resource.cache.CacheResource;
+import io.gravitee.resource.cache.Element;
 import io.gravitee.resource.oauth2.api.OAuth2Resource;
 import io.gravitee.resource.oauth2.api.OAuth2Response;
 import java.io.ByteArrayOutputStream;
@@ -80,6 +83,9 @@ public class OAuth2PolicyTest {
 
     @Mock
     TemplateEngine templateEngine;
+
+    @Mock
+    CacheResource customCacheResource;
 
     private static final String DEFAULT_OAUTH_SCOPE_SEPARATOR = " ";
 
@@ -221,6 +227,43 @@ public class OAuth2PolicyTest {
     }
 
     @Test
+    public void shouldCallCacheResource() throws Exception {
+        final HttpHeaders headers = new HttpHeaders();
+        String bearer = UUID.randomUUID().toString();
+
+        headers.setAll(
+            new HashMap<String, String>() {
+                {
+                    put("Authorization", "Bearer " + bearer);
+                }
+            }
+        );
+
+        Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
+        when(mockRequest.headers()).thenReturn(headers);
+        when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
+        when(oAuth2PolicyConfiguration.getOauthResource()).thenReturn("oauth2");
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class))
+            .thenReturn(customOAuth2Resource);
+        when(oAuth2PolicyConfiguration.getOauthCacheResource()).thenReturn("cache");
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthCacheResource(), CacheResource.class))
+            .thenReturn(customCacheResource);
+        Element cacheElement = mock(Element.class);
+        JsonNode jsonNode = readJsonResource("/io/gravitee/policy/oauth2/oauth2-response07.json");
+        when(cacheElement.value()).thenReturn(jsonNode.toPrettyString());
+        Cache cache = mock(Cache.class);
+        when(cache.get(eq(bearer))).thenReturn(cacheElement);
+        when(customCacheResource.getCache()).thenReturn(cache);
+
+        when(mockExecutionContext.getTemplateEngine()).thenReturn(templateEngine);
+
+        policy.onRequest(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
+
+        verify(customOAuth2Resource, times(0)).introspect(eq(bearer), any(Handler.class));
+        verify(mockExecutionContext).setAttribute(eq(Oauth2Policy.CONTEXT_ATTRIBUTE_OAUTH_ACCESS_TOKEN), eq(bearer));
+    }
+
+    @Test
     public void shouldCallOAuthResourceAndHandleResult() throws Exception {
         final HttpHeaders headers = new HttpHeaders();
         String bearer = UUID.randomUUID().toString();
@@ -341,7 +384,7 @@ public class OAuth2PolicyTest {
         when(mockResponse.headers()).thenReturn(httpHeaders);
 
         Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
-        Handler<OAuth2Response> handler = policy.handleResponse(mockPolicychain, mockRequest, mockResponse, mockExecutionContext);
+        Handler<OAuth2Response> handler = policy.handleResponse(mockPolicychain, mockRequest, mockResponse, mockExecutionContext, null);
 
         String payload = readResource("/io/gravitee/policy/oauth2/oauth2-response03.json");
         handler.handle(new OAuth2Response(false, payload));
@@ -365,7 +408,7 @@ public class OAuth2PolicyTest {
         when(mockResponse.headers()).thenReturn(httpHeaders);
 
         Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
-        Handler<OAuth2Response> handler = policy.handleResponse(mockPolicychain, mockRequest, mockResponse, mockExecutionContext);
+        Handler<OAuth2Response> handler = policy.handleResponse(mockPolicychain, mockRequest, mockResponse, mockExecutionContext, null);
 
         handler.handle(new OAuth2Response(new Exception()));
 
@@ -388,7 +431,7 @@ public class OAuth2PolicyTest {
         when(mockResponse.headers()).thenReturn(httpHeaders);
 
         Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
-        Handler<OAuth2Response> handler = policy.handleResponse(mockPolicychain, mockRequest, mockResponse, mockExecutionContext);
+        Handler<OAuth2Response> handler = policy.handleResponse(mockPolicychain, mockRequest, mockResponse, mockExecutionContext, null);
 
         handler.handle(new OAuth2Response(true, "blablabla"));
 
@@ -415,7 +458,7 @@ public class OAuth2PolicyTest {
         when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class))
             .thenReturn(customOAuth2Resource);
         when(customOAuth2Resource.getScopeSeparator()).thenReturn(DEFAULT_OAUTH_SCOPE_SEPARATOR);
-        Handler<OAuth2Response> handler = policy.handleResponse(mockPolicychain, mockRequest, mockResponse, mockExecutionContext);
+        Handler<OAuth2Response> handler = policy.handleResponse(mockPolicychain, mockRequest, mockResponse, mockExecutionContext, null);
 
         String payload = readResource("/io/gravitee/policy/oauth2/oauth2-response03.json");
         handler.handle(new OAuth2Response(true, payload));
@@ -435,7 +478,7 @@ public class OAuth2PolicyTest {
             .thenReturn(customOAuth2Resource);
         when(customOAuth2Resource.getScopeSeparator()).thenReturn(DEFAULT_OAUTH_SCOPE_SEPARATOR);
 
-        Handler<OAuth2Response> handler = policy.handleResponse(mockPolicychain, mockRequest, mockResponse, mockExecutionContext);
+        Handler<OAuth2Response> handler = policy.handleResponse(mockPolicychain, mockRequest, mockResponse, mockExecutionContext, null);
 
         String payload = readResource("/io/gravitee/policy/oauth2/oauth2-response04.json");
         handler.handle(new OAuth2Response(true, payload));
@@ -466,13 +509,41 @@ public class OAuth2PolicyTest {
         when(customOAuth2Resource.getScopeSeparator()).thenReturn(DEFAULT_OAUTH_SCOPE_SEPARATOR);
 
         Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
-        Handler<OAuth2Response> handler = policy.handleResponse(mockPolicychain, mockRequest, mockResponse, mockExecutionContext);
+        Handler<OAuth2Response> handler = policy.handleResponse(mockPolicychain, mockRequest, mockResponse, mockExecutionContext, null);
 
         String payload = readResource("/io/gravitee/policy/oauth2/oauth2-response04.json");
         handler.handle(new OAuth2Response(true, payload));
 
         verify(mockExecutionContext).setAttribute(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID, "my-client-id");
         verify(mockPolicychain).doNext(mockRequest, mockResponse);
+    }
+
+    @Test
+    public void shouldValidate_goodIntrospection_withCache() throws IOException {
+        when(oAuth2PolicyConfiguration.isCheckRequiredScopes()).thenReturn(true);
+        when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class))
+            .thenReturn(customOAuth2Resource);
+        when(customOAuth2Resource.getScopeSeparator()).thenReturn(DEFAULT_OAUTH_SCOPE_SEPARATOR);
+
+        Cache cache = mock(Cache.class);
+        when(customCacheResource.getCache()).thenReturn(cache);
+
+        Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
+        Handler<OAuth2Response> handler = policy.handleResponse(
+            mockPolicychain,
+            mockRequest,
+            mockResponse,
+            mockExecutionContext,
+            customCacheResource
+        );
+
+        String payload = readResource("/io/gravitee/policy/oauth2/oauth2-response04.json");
+        handler.handle(new OAuth2Response(true, payload));
+
+        verify(mockExecutionContext).setAttribute(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID, "my-client-id");
+        verify(mockPolicychain).doNext(mockRequest, mockResponse);
+        verify(cache).put(any(Element.class));
     }
 
     @Test
@@ -487,7 +558,7 @@ public class OAuth2PolicyTest {
         when(customOAuth2Resource.getScopeSeparator()).thenReturn(DEFAULT_OAUTH_SCOPE_SEPARATOR);
 
         Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
-        Handler<OAuth2Response> handler = policy.handleResponse(mockPolicychain, mockRequest, mockResponse, mockExecutionContext);
+        Handler<OAuth2Response> handler = policy.handleResponse(mockPolicychain, mockRequest, mockResponse, mockExecutionContext, null);
 
         String payload = readResource("/io/gravitee/policy/oauth2/oauth2-response04.json");
         handler.handle(new OAuth2Response(true, payload));
