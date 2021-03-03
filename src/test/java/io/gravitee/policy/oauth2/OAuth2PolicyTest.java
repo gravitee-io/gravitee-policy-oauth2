@@ -253,7 +253,7 @@ public class OAuth2PolicyTest {
         when(cacheElement.value()).thenReturn(jsonNode.toPrettyString());
         Cache cache = mock(Cache.class);
         when(cache.get(eq(bearer))).thenReturn(cacheElement);
-        when(customCacheResource.getCache()).thenReturn(cache);
+        when(customCacheResource.getCache(any(ExecutionContext.class))).thenReturn(cache);
 
         when(mockExecutionContext.getTemplateEngine()).thenReturn(templateEngine);
 
@@ -527,7 +527,7 @@ public class OAuth2PolicyTest {
         when(customOAuth2Resource.getScopeSeparator()).thenReturn(DEFAULT_OAUTH_SCOPE_SEPARATOR);
 
         Cache cache = mock(Cache.class);
-        when(customCacheResource.getCache()).thenReturn(cache);
+        when(customCacheResource.getCache(any(ExecutionContext.class))).thenReturn(cache);
 
         Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
         Handler<OAuth2Response> handler = policy.handleResponse(
