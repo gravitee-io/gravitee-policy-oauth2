@@ -39,7 +39,6 @@ import io.gravitee.resource.cache.Element;
 import io.gravitee.resource.oauth2.api.OAuth2Resource;
 import io.gravitee.resource.oauth2.api.OAuth2Response;
 import java.io.IOException;
-import java.security.Timestamp;
 import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -134,7 +133,7 @@ public class Oauth2Policy {
             .getResource(oAuth2PolicyConfiguration.getOauthCacheResource(), CacheResource.class);
 
         if (cacheResource != null) {
-            Element element = cacheResource.getCache().get(accessToken);
+            Element element = cacheResource.getCache(executionContext).get(accessToken);
             if (element != null) {
                 String oauth2payload = (String) element.value();
                 handleSuccess(policyChain, request, response, executionContext, oauth2payload, null);
@@ -255,7 +254,7 @@ public class Oauth2Policy {
                 long ttl = expTimestamp - System.currentTimeMillis() / 1000L;
                 element.setTimeToLive(Long.valueOf(ttl).intValue());
             }
-            cacheResource.getCache().put(element);
+            cacheResource.getCache(executionContext).put(element);
         }
 
         // Continue chaining
