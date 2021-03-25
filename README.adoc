@@ -31,6 +31,10 @@ $ curl -H "Authorization: Bearer |accessToken|" \
            http://gateway/api/resource
 ----
 
+=== Policy identifier
+
+You can enable or disable the policy with policy identifier `oauth2`.
+
 == Attributes
 
 |===
