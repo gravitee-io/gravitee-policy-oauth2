@@ -15,10 +15,13 @@
  */
 package io.gravitee.policy.oauth2.resource;
 
-import io.gravitee.resource.cache.Cache;
-import io.gravitee.resource.cache.Element;
+import io.gravitee.resource.cache.api.Element;
 import java.io.Serializable;
 
+/**
+ * @author David BRASSELY (david.brassely at graviteesource.com)
+ * @author GraviteeSource Team
+ */
 public class CacheElement implements Element {
 
     private final String key;

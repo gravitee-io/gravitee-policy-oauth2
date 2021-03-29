@@ -34,8 +34,8 @@ import io.gravitee.policy.api.annotations.OnRequest;
 import io.gravitee.policy.oauth2.configuration.OAuth2PolicyConfiguration;
 import io.gravitee.policy.oauth2.resource.CacheElement;
 import io.gravitee.resource.api.ResourceManager;
-import io.gravitee.resource.cache.CacheResource;
-import io.gravitee.resource.cache.Element;
+import io.gravitee.resource.cache.api.CacheResource;
+import io.gravitee.resource.cache.api.Element;
 import io.gravitee.resource.oauth2.api.OAuth2Resource;
 import io.gravitee.resource.oauth2.api.OAuth2Response;
 import java.io.IOException;
@@ -128,7 +128,7 @@ public class Oauth2Policy {
         // Set access_token in context
         executionContext.setAttribute(CONTEXT_ATTRIBUTE_OAUTH_ACCESS_TOKEN, accessToken);
 
-        CacheResource cacheResource = executionContext
+        CacheResource<?> cacheResource = executionContext
             .getComponent(ResourceManager.class)
             .getResource(oAuth2PolicyConfiguration.getOauthCacheResource(), CacheResource.class);
 
