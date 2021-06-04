@@ -31,6 +31,7 @@ import io.gravitee.gateway.api.handler.Handler;
 import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.api.PolicyResult;
 import io.gravitee.policy.api.annotations.OnRequest;
+import io.gravitee.policy.api.annotations.RequireResource;
 import io.gravitee.policy.oauth2.configuration.OAuth2PolicyConfiguration;
 import io.gravitee.policy.oauth2.resource.CacheElement;
 import io.gravitee.resource.api.ResourceManager;
@@ -49,6 +50,7 @@ import org.springframework.util.StringUtils;
  * @author Titouan COMPIEGNE (titouan.compiegne at graviteesource.com)
  * @author GraviteeSource Team
  */
+@RequireResource
 public class Oauth2Policy {
 
     private final Logger logger = LoggerFactory.getLogger(Oauth2Policy.class);
