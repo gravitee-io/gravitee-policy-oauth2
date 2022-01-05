@@ -21,13 +21,14 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.gravitee.common.http.HttpHeaders;
 import io.gravitee.common.http.HttpStatusCode;
 import io.gravitee.el.TemplateEngine;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
 import io.gravitee.gateway.api.handler.Handler;
+import io.gravitee.gateway.api.http.HttpHeaderNames;
+import io.gravitee.gateway.api.http.HttpHeaders;
 import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.oauth2.configuration.OAuth2PolicyConfiguration;
 import io.gravitee.resource.api.ResourceConfiguration;
@@ -113,12 +114,12 @@ public class OAuth2PolicyTest {
     public void shouldFailedIfNoAuthorizationHeaderProvided() {
         Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
 
-        when(mockRequest.headers()).thenReturn(new HttpHeaders());
+        when(mockRequest.headers()).thenReturn(HttpHeaders.create());
         when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
         when(oAuth2PolicyConfiguration.getOauthResource()).thenReturn("oauth2");
         when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class))
             .thenReturn(customOAuth2Resource);
-        when(mockResponse.headers()).thenReturn(new HttpHeaders());
+        when(mockResponse.headers()).thenReturn(HttpHeaders.create());
         when(mockExecutionContext.getTemplateEngine()).thenReturn(templateEngine);
 
         policy.onRequest(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
@@ -135,14 +136,7 @@ public class OAuth2PolicyTest {
 
     @Test
     public void shouldFailedIfNoAuthorizationHeaderBearerProvided() {
-        final HttpHeaders headers = new HttpHeaders();
-        headers.setAll(
-            new HashMap<String, String>() {
-                {
-                    put("Authorization", "Basic Test");
-                }
-            }
-        );
+        final HttpHeaders headers = HttpHeaders.create().set("Authorization", "Basic Test");
 
         Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
 
@@ -151,7 +145,7 @@ public class OAuth2PolicyTest {
         when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class))
             .thenReturn(customOAuth2Resource);
         when(mockRequest.headers()).thenReturn(headers);
-        when(mockResponse.headers()).thenReturn(new HttpHeaders());
+        when(mockResponse.headers()).thenReturn(HttpHeaders.create());
         when(mockExecutionContext.getTemplateEngine()).thenReturn(templateEngine);
 
         policy.onRequest(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
@@ -168,14 +162,7 @@ public class OAuth2PolicyTest {
 
     @Test
     public void shouldFailedIfNoAuthorizationAccessTokenBearerIsEmptyProvided() {
-        final HttpHeaders headers = new HttpHeaders();
-        headers.setAll(
-            new HashMap<String, String>() {
-                {
-                    put("Authorization", "Bearer");
-                }
-            }
-        );
+        HttpHeaders headers = HttpHeaders.create().set("Authorization", "Bearer");
 
         Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
 
@@ -184,7 +171,7 @@ public class OAuth2PolicyTest {
         when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class))
             .thenReturn(customOAuth2Resource);
         when(mockRequest.headers()).thenReturn(headers);
-        when(mockResponse.headers()).thenReturn(new HttpHeaders());
+        when(mockResponse.headers()).thenReturn(HttpHeaders.create());
         when(mockExecutionContext.getTemplateEngine()).thenReturn(templateEngine);
 
         policy.onRequest(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
@@ -201,16 +188,9 @@ public class OAuth2PolicyTest {
 
     @Test
     public void shouldCallOAuthResource() throws Exception {
-        final HttpHeaders headers = new HttpHeaders();
         String bearer = UUID.randomUUID().toString();
 
-        headers.setAll(
-            new HashMap<String, String>() {
-                {
-                    put("Authorization", "Bearer " + bearer);
-                }
-            }
-        );
+        final HttpHeaders headers = HttpHeaders.create().set("Authorization", "Bearer " + bearer);
 
         Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
         when(mockRequest.headers()).thenReturn(headers);
@@ -228,16 +208,9 @@ public class OAuth2PolicyTest {
 
     @Test
     public void shouldCallCacheResource() throws Exception {
-        final HttpHeaders headers = new HttpHeaders();
         String bearer = UUID.randomUUID().toString();
 
-        headers.setAll(
-            new HashMap<String, String>() {
-                {
-                    put("Authorization", "Bearer " + bearer);
-                }
-            }
-        );
+        final HttpHeaders headers = HttpHeaders.create().set("Authorization", "Bearer " + bearer);
 
         Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
         when(mockRequest.headers()).thenReturn(headers);
@@ -265,16 +238,9 @@ public class OAuth2PolicyTest {
 
     @Test
     public void shouldCallOAuthResourceAndHandleResult() throws Exception {
-        final HttpHeaders headers = new HttpHeaders();
         String bearer = UUID.randomUUID().toString();
 
-        headers.setAll(
-            new HashMap<String, String>() {
-                {
-                    put("Authorization", "Bearer " + bearer);
-                }
-            }
-        );
+        final HttpHeaders headers = HttpHeaders.create().set("Authorization", "Bearer " + bearer);
 
         Oauth2Policy policy = new Oauth2Policy(oAuth2PolicyConfiguration);
         when(mockRequest.headers()).thenReturn(headers);
@@ -390,7 +356,7 @@ public class OAuth2PolicyTest {
         handler.handle(new OAuth2Response(false, payload));
 
         verify(mockExecutionContext, never()).setAttribute(eq(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID), anyString());
-        verify(httpHeaders).add(eq(HttpHeaders.WWW_AUTHENTICATE), anyString());
+        verify(httpHeaders).add(eq(HttpHeaderNames.WWW_AUTHENTICATE), anyString());
 
         verify(mockPolicychain)
             .failWith(
@@ -413,7 +379,7 @@ public class OAuth2PolicyTest {
         handler.handle(new OAuth2Response(new Exception()));
 
         verify(mockExecutionContext, never()).setAttribute(eq(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID), anyString());
-        verify(httpHeaders).add(eq(HttpHeaders.WWW_AUTHENTICATE), anyString());
+        verify(httpHeaders).add(eq(HttpHeaderNames.WWW_AUTHENTICATE), anyString());
 
         verify(mockPolicychain)
             .failWith(
@@ -436,7 +402,7 @@ public class OAuth2PolicyTest {
         handler.handle(new OAuth2Response(true, "blablabla"));
 
         verify(mockExecutionContext, never()).setAttribute(eq(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID), anyString());
-        verify(httpHeaders).add(eq(HttpHeaders.WWW_AUTHENTICATE), anyString());
+        verify(httpHeaders).add(eq(HttpHeaderNames.WWW_AUTHENTICATE), anyString());
 
         verify(mockPolicychain)
             .failWith(
@@ -464,7 +430,7 @@ public class OAuth2PolicyTest {
         handler.handle(new OAuth2Response(true, payload));
 
         verify(mockExecutionContext, never()).setAttribute(eq(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID), anyString());
-        verify(httpHeaders, never()).add(eq(HttpHeaders.WWW_AUTHENTICATE), anyString());
+        verify(httpHeaders, never()).add(eq(HttpHeaderNames.WWW_AUTHENTICATE), anyString());
         verify(mockPolicychain).doNext(mockRequest, mockResponse);
     }
 
