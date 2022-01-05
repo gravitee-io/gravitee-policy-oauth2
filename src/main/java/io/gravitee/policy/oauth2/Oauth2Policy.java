@@ -21,13 +21,13 @@ import static io.gravitee.gateway.api.ExecutionContext.ATTR_USER_ROLES;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import io.gravitee.common.http.HttpHeaders;
 import io.gravitee.common.http.HttpStatusCode;
 import io.gravitee.common.http.MediaType;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
 import io.gravitee.gateway.api.handler.Handler;
+import io.gravitee.gateway.api.http.HttpHeaderNames;
 import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.api.PolicyResult;
 import io.gravitee.policy.api.annotations.OnRequest;
@@ -105,23 +105,18 @@ public class Oauth2Policy {
             return;
         }
 
-        List<String> authorizationHeaders = request.headers().get(HttpHeaders.AUTHORIZATION);
+        String authorizationHeader = request.headers().get(HttpHeaderNames.AUTHORIZATION);
 
-        if (authorizationHeaders == null || authorizationHeaders.isEmpty()) {
+        if (
+            authorizationHeader == null ||
+            authorizationHeader.isEmpty() ||
+            !StringUtils.startsWithIgnoreCase(authorizationHeader, BEARER_AUTHORIZATION_TYPE)
+        ) {
             sendError(OAUTH2_MISSING_HEADER_KEY, response, policyChain, "invalid_request", "No OAuth authorization header was supplied");
             return;
         }
 
-        Optional<String> optionalHeaderAccessToken = authorizationHeaders
-            .stream()
-            .filter(h -> StringUtils.startsWithIgnoreCase(h, BEARER_AUTHORIZATION_TYPE))
-            .findFirst();
-        if (!optionalHeaderAccessToken.isPresent()) {
-            sendError(OAUTH2_MISSING_HEADER_KEY, response, policyChain, "invalid_request", "No OAuth authorization header was supplied");
-            return;
-        }
-
-        String accessToken = optionalHeaderAccessToken.get().substring(BEARER_AUTHORIZATION_TYPE.length()).trim();
+        String accessToken = authorizationHeader.substring(BEARER_AUTHORIZATION_TYPE.length()).trim();
         if (accessToken.isEmpty()) {
             sendError(OAUTH2_MISSING_ACCESS_TOKEN_KEY, response, policyChain, "invalid_request", "No OAuth access token was supplied");
             return;
@@ -148,7 +143,7 @@ public class Oauth2Policy {
         }
 
         if (!oAuth2PolicyConfiguration.isPropagateAuthHeader()) {
-            request.headers().remove(HttpHeaders.AUTHORIZATION);
+            request.headers().remove(HttpHeaderNames.AUTHORIZATION);
         }
     }
 
@@ -163,7 +158,7 @@ public class Oauth2Policy {
             if (oauth2response.isSuccess()) {
                 handleSuccess(policyChain, request, response, executionContext, oauth2response.getPayload(), cacheResource);
             } else {
-                response.headers().add(HttpHeaders.WWW_AUTHENTICATE, BEARER_AUTHORIZATION_TYPE + " realm=gravitee.io ");
+                response.headers().add(HttpHeaderNames.WWW_AUTHENTICATE, BEARER_AUTHORIZATION_TYPE + " realm=gravitee.io ");
 
                 if (oauth2response.getThrowable() == null) {
                     policyChain.failWith(
@@ -281,7 +276,7 @@ public class Oauth2Policy {
             " error_description=\"" +
             description +
             "\"";
-        response.headers().add(HttpHeaders.WWW_AUTHENTICATE, headerValue);
+        response.headers().add(HttpHeaderNames.WWW_AUTHENTICATE, headerValue);
         policyChain.failWith(PolicyResult.failure(responseKey, HttpStatusCode.UNAUTHORIZED_401, null));
     }
 
