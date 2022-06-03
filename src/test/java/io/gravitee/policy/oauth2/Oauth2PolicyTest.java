@@ -1,0 +1,572 @@
+/**
+ * Copyright (C) 2015 The Gravitee team (http://gravitee.io)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.gravitee.policy.oauth2;
+
+import static io.gravitee.gateway.api.ExecutionContext.ATTR_USER;
+import static io.gravitee.gateway.api.ExecutionContext.ATTR_USER_ROLES;
+import static io.gravitee.gateway.api.http.HttpHeaderNames.AUTHORIZATION;
+import static io.gravitee.policy.oauth2.Oauth2Policy.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.gravitee.common.http.HttpStatusCode;
+import io.gravitee.common.security.jwt.LazyJWT;
+import io.gravitee.el.TemplateEngine;
+import io.gravitee.gateway.api.handler.Handler;
+import io.gravitee.gateway.api.http.HttpHeaderNames;
+import io.gravitee.gateway.api.http.HttpHeaders;
+import io.gravitee.gateway.reactive.api.ExecutionFailure;
+import io.gravitee.gateway.reactive.api.context.ExecutionContext;
+import io.gravitee.gateway.reactive.api.context.Request;
+import io.gravitee.gateway.reactive.api.context.RequestExecutionContext;
+import io.gravitee.gateway.reactive.api.context.Response;
+import io.gravitee.policy.oauth2.configuration.OAuth2PolicyConfiguration;
+import io.gravitee.policy.oauth2.resource.CacheElement;
+import io.gravitee.reporter.api.http.Metrics;
+import io.gravitee.resource.api.ResourceManager;
+import io.gravitee.resource.cache.api.Cache;
+import io.gravitee.resource.cache.api.CacheResource;
+import io.gravitee.resource.oauth2.api.OAuth2Resource;
+import io.gravitee.resource.oauth2.api.OAuth2Response;
+import io.reactivex.Completable;
+import io.reactivex.observers.TestObserver;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+/**
+ * @author Jeoffrey HAEYAERT (jeoffrey.haeyaert at graviteesource.com)
+ * @author GraviteeSource Team
+ */
+@ExtendWith(MockitoExtension.class)
+class Oauth2PolicyTest {
+
+    private static final String DEFAULT_OAUTH_SCOPE_SEPARATOR = " ";
+
+    static final ObjectMapper MAPPER = new ObjectMapper();
+    protected static final String OAUTH_RESOURCE = "oauth2";
+    protected static final String MOCK_EXCEPTION = "Mock exception";
+    protected static final String MOCK_INTROSPECT_EXCEPTION = "Mock introspect exception";
+    protected static final String INVALID_PAYLOAD = "blablabla";
+    protected static final String OAUTH_CACHE_RESOURCE = "OAUTH_CACHE_RESOURCE";
+
+    @Mock
+    private OAuth2PolicyConfiguration configuration;
+
+    @Mock
+    private Request request;
+
+    @Mock
+    private Response response;
+
+    @Mock
+    private RequestExecutionContext ctx;
+
+    @Mock
+    private ResourceManager resourceManager;
+
+    @Mock
+    private OAuth2Resource<?> oAuth2Resource;
+
+    @Mock
+    private TemplateEngine templateEngine;
+
+    @Mock
+    private CacheResource<?> cacheResource;
+
+    @Mock
+    private HttpHeaders headers;
+
+    @Mock
+    private HttpHeaders responseHeaders;
+
+    @Mock
+    private Cache cache;
+
+    private Oauth2Policy cut;
+
+    @BeforeEach
+    void init() {
+        // Common lenient mocks.
+        lenient().when(ctx.getComponent(ResourceManager.class)).thenReturn(resourceManager);
+        lenient().when(ctx.request()).thenReturn(request);
+        lenient().when(request.headers()).thenReturn(headers);
+
+        lenient().when(ctx.getTemplateEngine()).thenReturn(templateEngine);
+
+        lenient().when(ctx.response()).thenReturn(response);
+        lenient().when(response.headers()).thenReturn(responseHeaders);
+
+        cut = new Oauth2Policy(configuration);
+    }
+
+    @Test
+    void shouldInterruptWith401IfNoOAuthResourceProvided() {
+        when(configuration.getOauthResource()).thenReturn(OAUTH_RESOURCE);
+
+        final TestObserver<Void> obs = cut.onRequest(ctx).test();
+        obs.assertError(Throwable.class);
+
+        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, NO_OAUTH_SERVER_CONFIGURED_MESSAGE, OAUTH2_MISSING_SERVER_KEY, null);
+    }
+
+    @Test
+    void shouldInterruptWith401IfNoAuthorizationHeaderProvided() {
+        prepareOauth2Resource();
+
+        final TestObserver<Void> obs = cut.onRequest(ctx).test();
+        obs.assertError(Throwable.class);
+
+        verify(responseHeaders).add(eq(HttpHeaderNames.WWW_AUTHENTICATE), anyString());
+        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, NO_AUTHORIZATION_HEADER_SUPPLIED_MESSAGE, OAUTH2_MISSING_HEADER_KEY, null);
+    }
+
+    @Test
+    void shouldInterruptWith401IfNoAuthorizationHeaderBearerProvided() {
+        when(headers.getAll(AUTHORIZATION)).thenReturn(List.of("Basic Test"));
+        prepareOauth2Resource();
+
+        final TestObserver<Void> obs = cut.onRequest(ctx).test();
+        obs.assertError(Throwable.class);
+
+        verify(responseHeaders).add(eq(HttpHeaderNames.WWW_AUTHENTICATE), anyString());
+        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, NO_AUTHORIZATION_HEADER_SUPPLIED_MESSAGE, OAUTH2_MISSING_HEADER_KEY, null);
+    }
+
+    @Test
+    void shouldInterruptWith401IfNoAuthorizationAccessTokenBearerIsEmptyProvided() {
+        when(headers.getAll(AUTHORIZATION)).thenReturn(List.of("Bearer"));
+        prepareOauth2Resource();
+
+        final TestObserver<Void> obs = cut.onRequest(ctx).test();
+        obs.assertError(Throwable.class);
+
+        verify(responseHeaders).add(eq(HttpHeaderNames.WWW_AUTHENTICATE), anyString());
+        verifyInterruptWith(
+            HttpStatusCode.UNAUTHORIZED_401,
+            NO_AUTHORIZATION_HEADER_SUPPLIED_MESSAGE,
+            OAUTH2_MISSING_ACCESS_TOKEN_KEY,
+            null
+        );
+    }
+
+    @Test
+    void shouldCallOAuthResource() throws Exception {
+        final String token = prepareToken();
+        prepareOauth2Resource();
+        prepareIntrospection(token, readResource("/io/gravitee/policy/oauth2/oauth2-response04.json"), true);
+
+        final TestObserver<Void> obs = cut.onRequest(ctx).test();
+        obs.assertComplete();
+
+        verify(oAuth2Resource).introspect(eq(token), any(Handler.class));
+        verify(ctx).setAttribute(eq(Oauth2Policy.CONTEXT_ATTRIBUTE_OAUTH_ACCESS_TOKEN), eq(token));
+        verify(ctx, times(0)).setAttribute(eq(CONTEXT_ATTRIBUTE_OAUTH_PAYLOAD), any());
+    }
+
+    @Test
+    void shouldInterruptWith401WhenIntrospectionFails() throws IOException {
+        final String token = prepareToken();
+        prepareOauth2Resource();
+
+        final String payload = readResource("/io/gravitee/policy/oauth2/oauth2-response03.json");
+        prepareIntrospection(token, payload, false);
+
+        when(ctx.interruptWith(any(ExecutionFailure.class))).thenReturn(Completable.error(new RuntimeException(MOCK_EXCEPTION)));
+
+        final TestObserver<Void> obs = cut.onRequest(ctx).test();
+        obs.assertError(Throwable.class);
+
+        verify(ctx, never()).setAttribute(eq(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID), anyString());
+        verify(responseHeaders).add(eq(HttpHeaderNames.WWW_AUTHENTICATE), anyString());
+
+        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, payload, OAUTH2_INVALID_ACCESS_TOKEN_KEY, "application/json");
+    }
+
+    @Test
+    void shouldInterruptWith503WhenIntrospectionFailsWithException() {
+        final String token = prepareToken();
+        prepareOauth2Resource();
+
+        when(ctx.interruptWith(any(ExecutionFailure.class))).thenReturn(Completable.error(new RuntimeException(MOCK_EXCEPTION)));
+
+        final OAuth2Response oAuth2Response = mock(OAuth2Response.class);
+        when(oAuth2Response.isSuccess()).thenReturn(false);
+        when(oAuth2Response.getThrowable()).thenReturn(new RuntimeException(MOCK_INTROSPECT_EXCEPTION));
+
+        doAnswer(
+                i -> {
+                    i.<Handler<OAuth2Response>>getArgument(1).handle(oAuth2Response);
+                    return null;
+                }
+            )
+            .when(oAuth2Resource)
+            .introspect(eq(token), any(Handler.class));
+
+        final TestObserver<Void> obs = cut.onRequest(ctx).test();
+        obs.assertError(Throwable.class);
+
+        verify(ctx, never()).setAttribute(eq(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID), anyString());
+        verify(responseHeaders).add(eq(HttpHeaderNames.WWW_AUTHENTICATE), anyString());
+
+        verifyInterruptWith(HttpStatusCode.SERVICE_UNAVAILABLE_503, TEMPORARILY_UNAVAILABLE_MESSAGE, OAUTH2_SERVER_UNAVAILABLE_KEY, null);
+    }
+
+    @Test
+    void shouldInterruptWith401WhenGoodIntrospectionWithInvalidPayload() {
+        final String token = prepareToken();
+        prepareOauth2Resource();
+
+        when(ctx.interruptWith(any(ExecutionFailure.class))).thenReturn(Completable.error(new RuntimeException(MOCK_EXCEPTION)));
+
+        prepareIntrospection(token, INVALID_PAYLOAD, true);
+
+        final TestObserver<Void> obs = cut.onRequest(ctx).test();
+        obs.assertError(Throwable.class);
+
+        verify(ctx, never()).setAttribute(eq(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID), anyString());
+        verify(responseHeaders).add(eq(HttpHeaderNames.WWW_AUTHENTICATE), anyString());
+
+        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, INVALID_SERVER_RESPONSE_MESSAGE, OAUTH2_INVALID_SERVER_RESPONSE_KEY, null);
+    }
+
+    @Test
+    void shouldCompleteWhenGoodIntrospectionWithoutClientId() throws IOException {
+        final String token = prepareToken();
+        prepareOauth2Resource();
+
+        prepareIntrospection(token, readResource("/io/gravitee/policy/oauth2/oauth2-response03.json"), true);
+
+        final TestObserver<Void> obs = cut.onRequest(ctx).test();
+        obs.assertComplete();
+
+        verify(ctx, never()).setAttribute(eq(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID), anyString());
+        verify(ctx).setAttribute(ATTR_USER_ROLES, List.of("read", "write", "admin"));
+    }
+
+    @Test
+    void shouldCompleteWhenGoodIntrospectionWithClientId() throws IOException {
+        final String token = prepareToken();
+        prepareOauth2Resource();
+
+        prepareIntrospection(token, readResource("/io/gravitee/policy/oauth2/oauth2-response04.json"), true);
+
+        final TestObserver<Void> obs = cut.onRequest(ctx).test();
+        obs.assertComplete();
+
+        verify(ctx).setAttribute(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID, "my-client-id");
+        verify(ctx).setAttribute(ATTR_USER_ROLES, List.of("read", "write", "admin"));
+    }
+
+    @Test
+    void shouldCompleteWithUser() throws IOException {
+        final String user = "my-user";
+        final String token = prepareToken();
+        prepareOauth2Resource();
+
+        final String payload = readJsonResource("/io/gravitee/policy/oauth2/oauth2-response03.json").put("sub", user).toString();
+        prepareIntrospection(token, payload, true);
+
+        final Metrics metrics = mock(Metrics.class);
+        when(request.metrics()).thenReturn(metrics);
+
+        final TestObserver<Void> obs = cut.onRequest(ctx).test();
+        obs.assertComplete();
+
+        verify(ctx).setAttribute(ATTR_USER, user);
+        verify(metrics).setUser(user);
+    }
+
+    @Test
+    void shouldCompleteWithExtractPayload() throws IOException {
+        final String token = prepareToken();
+        prepareOauth2Resource();
+
+        final String payload = readResource("/io/gravitee/policy/oauth2/oauth2-response03.json");
+        prepareIntrospection(token, payload, true);
+
+        when(configuration.isExtractPayload()).thenReturn(true);
+
+        final TestObserver<Void> obs = cut.onRequest(ctx).test();
+        obs.assertComplete();
+
+        verify(ctx).setAttribute(CONTEXT_ATTRIBUTE_OAUTH_PAYLOAD, payload);
+    }
+
+    @Test
+    void shouldCompleteWhenRequiredScopesPresent() throws IOException {
+        final String token = prepareToken();
+        prepareOauth2Resource();
+
+        when(configuration.isCheckRequiredScopes()).thenReturn(true);
+        when(configuration.getRequiredScopes()).thenReturn(List.of("write", "admin"));
+
+        prepareIntrospection(token, readResource("/io/gravitee/policy/oauth2/oauth2-response04.json"), true);
+
+        final TestObserver<Void> obs = cut.onRequest(ctx).test();
+        obs.assertComplete();
+
+        verify(ctx).setAttribute(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID, "my-client-id");
+        verify(ctx).setAttribute(ATTR_USER_ROLES, List.of("read", "write", "admin"));
+    }
+
+    @Test
+    void shouldInterruptWith401WhenRequiredScopesAbsentStrictMode() throws IOException {
+        final String token = prepareToken();
+        prepareOauth2Resource();
+
+        when(ctx.interruptWith(any(ExecutionFailure.class))).thenReturn(Completable.error(new RuntimeException(MOCK_EXCEPTION)));
+
+        when(configuration.isCheckRequiredScopes()).thenReturn(true);
+        when(configuration.isModeStrict()).thenReturn(true);
+        when(configuration.getRequiredScopes()).thenReturn(List.of("other", "admin"));
+
+        prepareIntrospection(token, readResource("/io/gravitee/policy/oauth2/oauth2-response04.json"), true);
+
+        final TestObserver<Void> obs = cut.onRequest(ctx).test();
+        obs.assertError(Throwable.class);
+
+        verify(ctx).setAttribute(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID, "my-client-id");
+        verify(ctx).setAttribute(ATTR_USER_ROLES, List.of("read", "write", "admin"));
+
+        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, INSUFFICIENT_SCOPES_MESSAGE, OAUTH2_INSUFFICIENT_SCOPE_KEY, null);
+    }
+
+    @Test
+    void shouldInterruptWith401WhenRequiredScopesPartiallyPresentNonStrictMode() throws IOException {
+        final String token = prepareToken();
+        prepareOauth2Resource();
+
+        when(configuration.isCheckRequiredScopes()).thenReturn(true);
+        when(configuration.isModeStrict()).thenReturn(false);
+        when(configuration.getRequiredScopes()).thenReturn(List.of("other", "admin"));
+
+        prepareIntrospection(token, readResource("/io/gravitee/policy/oauth2/oauth2-response04.json"), true);
+
+        final TestObserver<Void> obs = cut.onRequest(ctx).test();
+        obs.assertComplete();
+
+        verify(ctx).setAttribute(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID, "my-client-id");
+        verify(ctx).setAttribute(ATTR_USER_ROLES, List.of("read", "write", "admin"));
+    }
+
+    @Test
+    void shouldPutIntrospectionToCache() throws IOException {
+        final String token = prepareToken();
+        prepareOauth2Resource();
+        prepareCacheResource();
+
+        final String payload = readResource("/io/gravitee/policy/oauth2/oauth2-response04.json");
+        prepareIntrospection(token, payload, true);
+
+        final TestObserver<Void> obs = cut.onRequest(ctx).test();
+        obs.assertComplete();
+
+        verify(ctx).setAttribute(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID, "my-client-id");
+        verify(cache)
+            .put(
+                argThat(
+                    e -> {
+                        assertEquals(token, e.key());
+                        assertEquals(payload, e.value());
+                        return true;
+                    }
+                )
+            );
+    }
+
+    private void prepareCacheResource() {
+        when(configuration.getOauthCacheResource()).thenReturn(OAUTH_CACHE_RESOURCE);
+        when(cacheResource.getCache(any(ExecutionContext.class))).thenReturn(cache);
+        when(resourceManager.getResource(OAUTH_CACHE_RESOURCE, CacheResource.class)).thenReturn(cacheResource);
+    }
+
+    @Test
+    void shouldPutIntrospectionToCacheWithExpiration() throws IOException {
+        final String token = prepareToken();
+        prepareOauth2Resource();
+        prepareCacheResource();
+
+        final String payload = readJsonResource("/io/gravitee/policy/oauth2/oauth2-response04.json")
+            .put("exp", (System.currentTimeMillis() + 3600000) / 1000)
+            .toString();
+        prepareIntrospection(token, payload, true);
+
+        final TestObserver<Void> obs = cut.onRequest(ctx).test();
+        obs.assertComplete();
+
+        verify(ctx).setAttribute(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID, "my-client-id");
+        verify(cache)
+            .put(
+                argThat(
+                    e -> {
+                        assertEquals(token, e.key());
+                        assertEquals(payload, e.value());
+                        assertTrue(e.timeToLive() > 0);
+                        return true;
+                    }
+                )
+            );
+    }
+
+    @Test
+    void shouldGetIntrospectionFromCache() throws IOException {
+        final String token = prepareToken();
+        prepareOauth2Resource();
+        prepareCacheResource();
+
+        final String payload = readResource("/io/gravitee/policy/oauth2/oauth2-response04.json");
+        final CacheElement cacheElement = new CacheElement(token, payload);
+
+        when(cache.get(token)).thenReturn(cacheElement);
+
+        final TestObserver<Void> obs = cut.onRequest(ctx).test();
+        obs.assertComplete();
+
+        verify(ctx).setAttribute(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID, "my-client-id");
+    }
+
+    @Test
+    void shouldReturnOrder0() {
+        assertEquals(0, cut.order());
+    }
+
+    @Test
+    void shouldReturnOAuth2PolicyId() {
+        assertEquals("oauth2", cut.id());
+    }
+
+    @Test
+    void shouldValidateSubscription() {
+        assertTrue(cut.requireSubscription());
+    }
+
+    @Test
+    void shouldInterruptOnSubscriptionInvalid() {
+        when(ctx.interruptWith(any())).thenReturn(Completable.error(new RuntimeException(MOCK_EXCEPTION)));
+
+        final TestObserver<Void> obs = cut.onInvalidSubscription(ctx).test();
+
+        obs.assertError(Throwable.class);
+
+        verify(ctx)
+            .interruptWith(
+                argThat(
+                    failure -> {
+                        assertEquals(HttpStatusCode.UNAUTHORIZED_401, failure.statusCode());
+                        assertEquals(OAUTH2_ERROR_ACCESS_DENIED, failure.message());
+                        assertEquals(GATEWAY_OAUTH2_ACCESS_DENIED_KEY, failure.key());
+                        assertNull(failure.parameters());
+                        assertNull(failure.contentType());
+
+                        return true;
+                    }
+                )
+            );
+    }
+
+    @Test
+    void shouldReturnCanHandleWhenTokenIsPresent() {
+        final String token = prepareToken();
+        final TestObserver<Boolean> obs = cut.support(ctx).test();
+
+        obs.assertResult(true);
+
+        verify(ctx).setAttribute(eq(CONTEXT_ATTRIBUTE_JWT), Mockito.<LazyJWT>argThat(jwt -> token.equals(jwt.getToken())));
+    }
+
+    @Test
+    void shouldReturnCannotHandleWhenTokenIsAbsent() {
+        final TestObserver<Boolean> obs = cut.support(ctx).test();
+
+        obs.assertResult(false);
+
+        verify(ctx, times(0)).setAttribute(eq(CONTEXT_ATTRIBUTE_JWT), any());
+    }
+
+    private String prepareToken() {
+        final String token = UUID.randomUUID().toString();
+        when(headers.getAll(AUTHORIZATION)).thenReturn(List.of("Bearer" + token));
+        lenient().when(ctx.getAttribute(CONTEXT_ATTRIBUTE_OAUTH_ACCESS_TOKEN)).thenReturn(token);
+
+        return token;
+    }
+
+    private void prepareOauth2Resource() {
+        when(configuration.getOauthResource()).thenReturn(OAUTH_RESOURCE);
+        when(templateEngine.getValue(OAUTH_RESOURCE, String.class)).thenReturn(OAUTH_RESOURCE);
+        when(resourceManager.getResource(OAUTH_RESOURCE, OAuth2Resource.class)).thenReturn(oAuth2Resource);
+        lenient().when(oAuth2Resource.getScopeSeparator()).thenReturn(DEFAULT_OAUTH_SCOPE_SEPARATOR);
+    }
+
+    private void prepareIntrospection(String token, String payload, boolean success) {
+        final OAuth2Response oAuth2Response = mock(OAuth2Response.class);
+        when(oAuth2Response.isSuccess()).thenReturn(success);
+        when(oAuth2Response.getPayload()).thenReturn(payload);
+
+        doAnswer(
+                i -> {
+                    i.<Handler<OAuth2Response>>getArgument(1).handle(oAuth2Response);
+                    return null;
+                }
+            )
+            .when(oAuth2Resource)
+            .introspect(eq(token), any(Handler.class));
+    }
+
+    private void verifyInterruptWith(int httpStatus, String message, String key, String contentType) {
+        verify(ctx)
+            .interruptWith(
+                argThat(
+                    failure -> {
+                        assertEquals(httpStatus, failure.statusCode());
+                        assertEquals(message, failure.message());
+                        assertEquals(key, failure.key());
+                        assertNull(failure.parameters());
+                        assertEquals(contentType, failure.contentType());
+
+                        return true;
+                    }
+                )
+            );
+    }
+
+    private ObjectNode readJsonResource(String resource) throws IOException {
+        return (ObjectNode) MAPPER.readTree(this.getClass().getResourceAsStream(resource));
+    }
+
+    private String readResource(String resource) throws IOException {
+        InputStream stream = this.getClass().getResourceAsStream(resource);
+        ByteArrayOutputStream result = new ByteArrayOutputStream();
+        byte[] buffer = new byte[1024];
+        int length;
+        while ((length = stream.read(buffer)) != -1) {
+            result.write(buffer, 0, length);
+        }
+        return result.toString(StandardCharsets.UTF_8.name());
+    }
+}
