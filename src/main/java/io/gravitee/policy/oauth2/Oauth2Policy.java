@@ -15,247 +15,265 @@
  */
 package io.gravitee.policy.oauth2;
 
+import static io.gravitee.common.http.HttpStatusCode.SERVICE_UNAVAILABLE_503;
+import static io.gravitee.common.http.HttpStatusCode.UNAUTHORIZED_401;
 import static io.gravitee.gateway.api.ExecutionContext.ATTR_USER;
 import static io.gravitee.gateway.api.ExecutionContext.ATTR_USER_ROLES;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.gravitee.common.http.HttpStatusCode;
 import io.gravitee.common.http.MediaType;
+import io.gravitee.common.security.jwt.LazyJWT;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
 import io.gravitee.gateway.api.handler.Handler;
 import io.gravitee.gateway.api.http.HttpHeaderNames;
+import io.gravitee.gateway.reactive.api.ExecutionFailure;
+import io.gravitee.gateway.reactive.api.context.RequestExecutionContext;
+import io.gravitee.gateway.reactive.api.policy.SecurityPolicy;
 import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.api.PolicyResult;
-import io.gravitee.policy.api.annotations.OnRequest;
 import io.gravitee.policy.api.annotations.RequireResource;
 import io.gravitee.policy.oauth2.configuration.OAuth2PolicyConfiguration;
 import io.gravitee.policy.oauth2.resource.CacheElement;
+import io.gravitee.policy.oauth2.utils.TokenExtractor;
+import io.gravitee.policy.v3.oauth2.Oauth2PolicyV3;
 import io.gravitee.resource.api.ResourceManager;
 import io.gravitee.resource.cache.api.CacheResource;
 import io.gravitee.resource.cache.api.Element;
 import io.gravitee.resource.oauth2.api.OAuth2Resource;
 import io.gravitee.resource.oauth2.api.OAuth2Response;
-import java.io.IOException;
+import io.reactivex.Completable;
+import io.reactivex.Maybe;
+import io.reactivex.Single;
 import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.StringUtils;
 
 /**
- * @author David BRASSELY (david.brassely at graviteesource.com)
- * @author Titouan COMPIEGNE (titouan.compiegne at graviteesource.com)
+ * @author Jeoffrey HAEYAERT (jeoffrey.haeyaert at graviteesource.com)
  * @author GraviteeSource Team
  */
 @RequireResource
-public class Oauth2Policy {
+public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
 
-    private final Logger logger = LoggerFactory.getLogger(Oauth2Policy.class);
-
-    static final String BEARER_AUTHORIZATION_TYPE = "Bearer";
-    static final String OAUTH_PAYLOAD_SCOPE_NODE = "scope";
-    static final String OAUTH_PAYLOAD_CLIENT_ID_NODE = "client_id";
-    static final String OAUTH_PAYLOAD_SUB_NODE = "sub";
-    static final String OAUTH_PAYLOAD_EXP = "exp";
-
-    static final String CONTEXT_ATTRIBUTE_PREFIX = "oauth.";
-    static final String CONTEXT_ATTRIBUTE_OAUTH_PAYLOAD = CONTEXT_ATTRIBUTE_PREFIX + "payload";
-    static final String CONTEXT_ATTRIBUTE_OAUTH_ACCESS_TOKEN = CONTEXT_ATTRIBUTE_PREFIX + "access_token";
-    static final String CONTEXT_ATTRIBUTE_CLIENT_ID = CONTEXT_ATTRIBUTE_PREFIX + "client_id";
-
-    static final String OAUTH2_MISSING_SERVER_KEY = "OAUTH2_MISSING_SERVER";
-    static final String OAUTH2_MISSING_HEADER_KEY = "OAUTH2_MISSING_HEADER";
-    static final String OAUTH2_MISSING_ACCESS_TOKEN_KEY = "OAUTH2_MISSING_ACCESS_TOKEN";
-    static final String OAUTH2_INVALID_ACCESS_TOKEN_KEY = "OAUTH2_INVALID_ACCESS_TOKEN";
-    static final String OAUTH2_INVALID_SERVER_RESPONSE_KEY = "OAUTH2_INVALID_SERVER_RESPONSE";
-    static final String OAUTH2_INSUFFICIENT_SCOPE_KEY = "OAUTH2_INSUFFICIENT_SCOPE";
-    static final String OAUTH2_SERVER_UNAVAILABLE_KEY = "OAUTH2_SERVER_UNAVAILABLE";
-
-    static final ObjectMapper MAPPER = new ObjectMapper();
-
-    private OAuth2PolicyConfiguration oAuth2PolicyConfiguration;
+    private static final Logger log = LoggerFactory.getLogger(Oauth2Policy.class);
+    public static final String CONTEXT_ATTRIBUTE_JWT = "jwt";
+    public static final String CONTEXT_ATTRIBUTE_TOKEN = CONTEXT_ATTRIBUTE_PREFIX + "token";
+    protected static final String NO_OAUTH_SERVER_CONFIGURED_MESSAGE = "No OAuth authorization server has been configured";
+    protected static final String NO_AUTHORIZATION_HEADER_SUPPLIED_MESSAGE = "No OAuth authorization header was supplied";
+    protected static final String TEMPORARILY_UNAVAILABLE_MESSAGE = "temporarily_unavailable";
+    protected static final String INVALID_SERVER_RESPONSE_MESSAGE = "Invalid response from authorization server";
+    protected static final String INSUFFICIENT_SCOPES_MESSAGE = "The request requires higher privileges than provided by the access token.";
+    public static final String OAUTH2_ERROR_ACCESS_DENIED = "access_denied";
+    public static final String GATEWAY_OAUTH2_ACCESS_DENIED_KEY = "GATEWAY_OAUTH2_ACCESS_DENIED";
+    private static final Single<Boolean> TRUE = Single.just(true);
 
     public Oauth2Policy(OAuth2PolicyConfiguration oAuth2PolicyConfiguration) {
-        this.oAuth2PolicyConfiguration = oAuth2PolicyConfiguration;
+        super(oAuth2PolicyConfiguration);
     }
 
-    @OnRequest
-    public void onRequest(Request request, Response response, ExecutionContext executionContext, PolicyChain policyChain) {
-        logger.debug("Read access_token from request {}", request.id());
+    @Override
+    public String id() {
+        return "oauth2";
+    }
 
-        oAuth2PolicyConfiguration.setOauthResource(
-            executionContext.getTemplateEngine().getValue(oAuth2PolicyConfiguration.getOauthResource(), String.class)
+    @Override
+    public int order() {
+        return 0;
+    }
+
+    @Override
+    public Single<Boolean> support(RequestExecutionContext ctx) {
+        final LazyJWT jwtToken = ctx.getAttribute(CONTEXT_ATTRIBUTE_JWT);
+        if (jwtToken != null) {
+            return TRUE;
+        }
+
+        final Optional<String> optToken = TokenExtractor.extract(ctx.request());
+        optToken.ifPresent(token -> ctx.setAttribute(CONTEXT_ATTRIBUTE_JWT, new LazyJWT(token)));
+
+        return Single.just(optToken.isPresent());
+    }
+
+    @Override
+    public boolean requireSubscription() {
+        return true;
+    }
+
+    @Override
+    public Completable onInvalidSubscription(RequestExecutionContext ctx) {
+        return ctx.interruptWith(
+            new ExecutionFailure(UNAUTHORIZED_401).key(GATEWAY_OAUTH2_ACCESS_DENIED_KEY).message(OAUTH2_ERROR_ACCESS_DENIED)
         );
-
-        OAuth2Resource oauth2 = executionContext
-            .getComponent(ResourceManager.class)
-            .getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class);
-
-        if (oauth2 == null) {
-            policyChain.failWith(
-                PolicyResult.failure(
-                    OAUTH2_MISSING_SERVER_KEY,
-                    HttpStatusCode.UNAUTHORIZED_401,
-                    "No OAuth authorization server has been configured"
-                )
-            );
-            return;
-        }
-
-        String authorizationHeader = request.headers().get(HttpHeaderNames.AUTHORIZATION);
-
-        if (
-            authorizationHeader == null ||
-            authorizationHeader.isEmpty() ||
-            !StringUtils.startsWithIgnoreCase(authorizationHeader, BEARER_AUTHORIZATION_TYPE)
-        ) {
-            sendError(OAUTH2_MISSING_HEADER_KEY, response, policyChain, "invalid_request", "No OAuth authorization header was supplied");
-            return;
-        }
-
-        String accessToken = authorizationHeader.substring(BEARER_AUTHORIZATION_TYPE.length()).trim();
-        if (accessToken.isEmpty()) {
-            sendError(OAUTH2_MISSING_ACCESS_TOKEN_KEY, response, policyChain, "invalid_request", "No OAuth access token was supplied");
-            return;
-        }
-
-        // Set access_token in context
-        executionContext.setAttribute(CONTEXT_ATTRIBUTE_OAUTH_ACCESS_TOKEN, accessToken);
-
-        CacheResource<?> cacheResource = executionContext
-            .getComponent(ResourceManager.class)
-            .getResource(oAuth2PolicyConfiguration.getOauthCacheResource(), CacheResource.class);
-
-        if (cacheResource != null) {
-            Element element = cacheResource.getCache(executionContext).get(accessToken);
-            if (element != null) {
-                String oauth2payload = (String) element.value();
-                handleSuccess(policyChain, request, response, executionContext, oauth2payload, null);
-            } else {
-                oauth2.introspect(accessToken, handleResponse(policyChain, request, response, executionContext, cacheResource));
-            }
-        } else {
-            // Validate access token
-            oauth2.introspect(accessToken, handleResponse(policyChain, request, response, executionContext, null));
-        }
-
-        if (!oAuth2PolicyConfiguration.isPropagateAuthHeader()) {
-            request.headers().remove(HttpHeaderNames.AUTHORIZATION);
-        }
     }
 
-    Handler<OAuth2Response> handleResponse(
-        PolicyChain policyChain,
-        Request request,
-        Response response,
-        ExecutionContext executionContext,
-        CacheResource cacheResource
-    ) {
-        return oauth2response -> {
-            if (oauth2response.isSuccess()) {
-                handleSuccess(policyChain, request, response, executionContext, oauth2response.getPayload(), cacheResource);
-            } else {
-                response.headers().add(HttpHeaderNames.WWW_AUTHENTICATE, BEARER_AUTHORIZATION_TYPE + " realm=gravitee.io ");
+    @Override
+    public Completable onRequest(RequestExecutionContext ctx) {
+        return Completable
+            .defer(
+                () -> {
+                    log.debug("Read access_token from request {}", ctx.request().id());
+                    final OAuth2Resource<?> oauth2Resource = getOauth2Resource(ctx);
 
-                if (oauth2response.getThrowable() == null) {
-                    policyChain.failWith(
-                        PolicyResult.failure(
-                            OAUTH2_INVALID_ACCESS_TOKEN_KEY,
-                            HttpStatusCode.UNAUTHORIZED_401,
-                            oauth2response.getPayload(),
-                            MediaType.APPLICATION_JSON
-                        )
-                    );
-                } else {
-                    policyChain.failWith(
-                        PolicyResult.failure(
-                            OAUTH2_SERVER_UNAVAILABLE_KEY,
-                            HttpStatusCode.SERVICE_UNAVAILABLE_503,
-                            "temporarily_unavailable"
-                        )
-                    );
+                    if (oauth2Resource == null) {
+                        return ctx.interruptWith(
+                            new ExecutionFailure(UNAUTHORIZED_401)
+                                .key(OAUTH2_MISSING_SERVER_KEY)
+                                .message(NO_OAUTH_SERVER_CONFIGURED_MESSAGE)
+                        );
+                    }
+
+                    return extractToken(ctx)
+                        .flatMapCompletable(
+                            accessToken -> {
+                                // Set access_token in context
+                                ctx.setAttribute(CONTEXT_ATTRIBUTE_OAUTH_ACCESS_TOKEN, accessToken);
+
+                                final CacheResource<?> cacheResource = getCacheResource(ctx);
+
+                                if (cacheResource != null) {
+                                    Element element = cacheResource.getCache(ctx).get(accessToken);
+                                    if (element != null) {
+                                        return validateOAuth2Payload(ctx, (String) element.value(), cacheResource, oauth2Resource);
+                                    }
+                                }
+                                // Validate access token
+                                return introspectAccessToken(ctx, accessToken, cacheResource, oauth2Resource);
+                            }
+                        );
                 }
-            }
-        };
+            )
+            .doOnTerminate(
+                () -> {
+                    if (!oAuth2PolicyConfiguration.isPropagateAuthHeader()) {
+                        ctx.request().headers().remove(HttpHeaderNames.AUTHORIZATION);
+                    }
+                }
+            );
     }
 
-    private void handleSuccess(
-        PolicyChain policyChain,
-        Request request,
-        Response response,
-        ExecutionContext executionContext,
+    private Maybe<String> extractToken(RequestExecutionContext ctx) {
+        return Maybe
+            .defer(
+                () -> {
+                    Optional<LazyJWT> jwt = Optional.ofNullable(ctx.getAttribute(CONTEXT_ATTRIBUTE_JWT));
+
+                    if (jwt.isEmpty()) {
+                        Optional<String> token = TokenExtractor.extract(ctx.request());
+
+                        if (token.isEmpty()) {
+                            return sendError(ctx, OAUTH2_MISSING_HEADER_KEY, "invalid_request", NO_AUTHORIZATION_HEADER_SUPPLIED_MESSAGE)
+                                .toMaybe();
+                        }
+
+                        jwt = Optional.of(new LazyJWT(token.get()));
+                    }
+
+                    final String accessToken = jwt.get().getToken();
+                    if (accessToken.isBlank()) {
+                        return sendError(ctx, OAUTH2_MISSING_ACCESS_TOKEN_KEY, "invalid_request", NO_AUTHORIZATION_HEADER_SUPPLIED_MESSAGE)
+                            .toMaybe();
+                    }
+
+                    return Maybe.just(accessToken);
+                }
+            )
+            .doOnSuccess(token -> ctx.setAttribute(CONTEXT_ATTRIBUTE_TOKEN, token));
+    }
+
+    private Completable validateOAuth2Payload(
+        RequestExecutionContext ctx,
         String oauth2payload,
-        CacheResource cacheResource
+        CacheResource<?> cacheResource,
+        OAuth2Resource<?> oauth2Resource
     ) {
         JsonNode oauthResponseNode = readPayload(oauth2payload);
 
         if (oauthResponseNode == null) {
-            sendError(
-                OAUTH2_INVALID_SERVER_RESPONSE_KEY,
-                response,
-                policyChain,
-                "server_error",
-                "Invalid response from authorization server"
-            );
-            return;
+            return sendError(ctx, OAUTH2_INVALID_SERVER_RESPONSE_KEY, "server_error", INVALID_SERVER_RESPONSE_MESSAGE);
         }
 
         // Extract client_id
         String clientId = oauthResponseNode.path(OAUTH_PAYLOAD_CLIENT_ID_NODE).asText();
         if (clientId != null && !clientId.trim().isEmpty()) {
-            executionContext.setAttribute(CONTEXT_ATTRIBUTE_CLIENT_ID, clientId);
+            ctx.setAttribute(CONTEXT_ATTRIBUTE_CLIENT_ID, clientId);
         }
 
-        final OAuth2Resource oauth2 = executionContext
-            .getComponent(ResourceManager.class)
-            .getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class);
-
         // Extract user
-        final String user = oauthResponseNode.path(oauth2.getUserClaim() == null ? OAUTH_PAYLOAD_SUB_NODE : oauth2.getUserClaim()).asText();
+        final String user = oauthResponseNode
+            .path(oauth2Resource.getUserClaim() == null ? OAUTH_PAYLOAD_SUB_NODE : oauth2Resource.getUserClaim())
+            .asText();
         if (user != null && !user.trim().isEmpty()) {
-            executionContext.setAttribute(ATTR_USER, user);
-            request.metrics().setUser(user);
+            ctx.setAttribute(ATTR_USER, user);
+            ctx.request().metrics().setUser(user);
         }
 
         // Extract scopes from introspection response
-        List<String> scopes = extractScopes(oauthResponseNode, oauth2.getScopeSeparator());
-        executionContext.setAttribute(ATTR_USER_ROLES, scopes);
+        List<String> scopes = extractScopes(oauthResponseNode, oauth2Resource.getScopeSeparator());
+        ctx.setAttribute(ATTR_USER_ROLES, scopes);
 
         // Check required scopes to access the resource
         if (oAuth2PolicyConfiguration.isCheckRequiredScopes()) {
             if (!hasRequiredScopes(scopes, oAuth2PolicyConfiguration.getRequiredScopes(), oAuth2PolicyConfiguration.isModeStrict())) {
-                sendError(
-                    OAUTH2_INSUFFICIENT_SCOPE_KEY,
-                    response,
-                    policyChain,
-                    "insufficient_scope",
-                    "The request requires higher privileges than provided by the access token."
-                );
-                return;
+                return sendError(ctx, OAUTH2_INSUFFICIENT_SCOPE_KEY, "insufficient_scope", INSUFFICIENT_SCOPES_MESSAGE);
             }
         }
 
         // Store OAuth2 payload into execution context if required
         if (oAuth2PolicyConfiguration.isExtractPayload()) {
-            executionContext.setAttribute(CONTEXT_ATTRIBUTE_OAUTH_PAYLOAD, oauth2payload);
+            ctx.setAttribute(CONTEXT_ATTRIBUTE_OAUTH_PAYLOAD, oauth2payload);
         }
 
         if (cacheResource != null) {
-            String accessToken = (String) executionContext.getAttribute(CONTEXT_ATTRIBUTE_OAUTH_ACCESS_TOKEN);
+            String accessToken = ctx.getAttribute(CONTEXT_ATTRIBUTE_OAUTH_ACCESS_TOKEN);
             CacheElement element = new CacheElement(accessToken, oauth2payload);
             if (oauthResponseNode.has(OAUTH_PAYLOAD_EXP)) {
                 long expTimestamp = oauthResponseNode.get(OAUTH_PAYLOAD_EXP).asLong();
                 long ttl = expTimestamp - System.currentTimeMillis() / 1000L;
                 element.setTimeToLive(Long.valueOf(ttl).intValue());
             }
-            cacheResource.getCache(executionContext).put(element);
+            cacheResource.getCache(ctx).put(element);
         }
 
         // Continue chaining
-        policyChain.doNext(request, response);
+        return Completable.complete();
+    }
+
+    private Completable introspectAccessToken(
+        RequestExecutionContext ctx,
+        String accessToken,
+        CacheResource<?> cacheResource,
+        OAuth2Resource<?> oauth2Resource
+    ) {
+        return Single
+            .<OAuth2Response>create(emitter -> oauth2Resource.introspect(accessToken, emitter::onSuccess))
+            .flatMapCompletable(
+                oauth2Response -> {
+                    if (oauth2Response.isSuccess()) {
+                        return validateOAuth2Payload(ctx, oauth2Response.getPayload(), cacheResource, oauth2Resource);
+                    } else {
+                        ctx.response().headers().add(HttpHeaderNames.WWW_AUTHENTICATE, BEARER_AUTHORIZATION_TYPE + " realm=gravitee.io ");
+
+                        if (oauth2Response.getThrowable() == null) {
+                            return ctx.interruptWith(
+                                new ExecutionFailure(UNAUTHORIZED_401)
+                                    .key(OAUTH2_INVALID_ACCESS_TOKEN_KEY)
+                                    .message(oauth2Response.getPayload())
+                                    .contentType(MediaType.APPLICATION_JSON)
+                            );
+                        } else {
+                            return ctx.interruptWith(
+                                new ExecutionFailure(SERVICE_UNAVAILABLE_503)
+                                    .key(OAUTH2_SERVER_UNAVAILABLE_KEY)
+                                    .message(TEMPORARILY_UNAVAILABLE_MESSAGE)
+                            );
+                        }
+                    }
+                }
+            );
     }
 
     /**
@@ -266,7 +284,7 @@ public class Oauth2Policy {
      *      error="invalid_token",
      *      error_description="The access token expired"
      */
-    private void sendError(String responseKey, Response response, PolicyChain policyChain, String error, String description) {
+    private Completable sendError(RequestExecutionContext ctx, String responseKey, String error, String description) {
         String headerValue =
             BEARER_AUTHORIZATION_TYPE +
             " realm=\"gravitee.io\"," +
@@ -276,49 +294,30 @@ public class Oauth2Policy {
             " error_description=\"" +
             description +
             "\"";
-        response.headers().add(HttpHeaderNames.WWW_AUTHENTICATE, headerValue);
-        policyChain.failWith(PolicyResult.failure(responseKey, HttpStatusCode.UNAUTHORIZED_401, null));
+
+        ctx.response().headers().add(HttpHeaderNames.WWW_AUTHENTICATE, headerValue);
+
+        return ctx.interruptWith(new ExecutionFailure(UNAUTHORIZED_401).key(responseKey).message(description));
     }
 
-    private JsonNode readPayload(String oauthPayload) {
-        try {
-            return MAPPER.readTree(oauthPayload);
-        } catch (IOException ioe) {
-            logger.error("Unable to check required scope from introspection endpoint payload: {}", oauthPayload);
+    private OAuth2Resource<?> getOauth2Resource(RequestExecutionContext ctx) {
+        if (oAuth2PolicyConfiguration.getOauthResource() == null) {
             return null;
         }
+
+        return ctx
+            .getComponent(ResourceManager.class)
+            .getResource(
+                ctx.getTemplateEngine().getValue(oAuth2PolicyConfiguration.getOauthResource(), String.class),
+                OAuth2Resource.class
+            );
     }
 
-    static List<String> extractScopes(JsonNode oauthResponseNode, String scopeSeparator) {
-        JsonNode scopesNode = oauthResponseNode.path(OAUTH_PAYLOAD_SCOPE_NODE);
-
-        List<String> scopes;
-
-        if (scopesNode instanceof ArrayNode) {
-            Iterator<JsonNode> scopeIterator = scopesNode.elements();
-            scopes = new ArrayList<>(scopesNode.size());
-            List<String> finalScopes = scopes;
-            scopeIterator.forEachRemaining(jsonNode -> finalScopes.add(jsonNode.asText()));
-        } else {
-            scopes = Arrays.asList(scopesNode.asText().split(scopeSeparator));
+    private CacheResource<?> getCacheResource(RequestExecutionContext ctx) {
+        if (oAuth2PolicyConfiguration.getOauthCacheResource() == null) {
+            return null;
         }
 
-        return scopes;
-    }
-
-    static boolean hasRequiredScopes(Collection<String> tokenScopes, List<String> requiredScopes, final boolean modeStrict) {
-        if (requiredScopes == null || requiredScopes.isEmpty()) {
-            return true;
-        }
-
-        if (tokenScopes == null || tokenScopes.isEmpty()) {
-            return false;
-        }
-
-        if (modeStrict) {
-            return tokenScopes.containsAll(requiredScopes);
-        } else {
-            return tokenScopes.stream().anyMatch(requiredScopes::contains);
-        }
+        return ctx.getComponent(ResourceManager.class).getResource(oAuth2PolicyConfiguration.getOauthCacheResource(), CacheResource.class);
     }
 }
