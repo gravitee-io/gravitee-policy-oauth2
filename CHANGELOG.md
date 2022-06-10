@@ -1,3 +1,10 @@
+# [1.20.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/1.19.0...1.20.0) (2022-06-10)
+
+
+### Features
+
+* **jupiter:** move to Jupiter SecurityPolicy ([87656fc](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/87656fce5a47766bfacb4a7f75779f6fca90c47b))
+
 # [1.19.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/1.18.0...1.19.0) (2022-01-21)
 
 
