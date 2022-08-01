@@ -35,7 +35,12 @@ import io.gravitee.gateway.jupiter.api.context.ExecutionContext;
 import io.gravitee.gateway.jupiter.api.context.Request;
 import io.gravitee.gateway.jupiter.api.context.RequestExecutionContext;
 import io.gravitee.gateway.jupiter.api.context.Response;
+import io.gravitee.gateway.jupiter.api.policy.SecurityToken;
+import io.gravitee.gateway.jupiter.core.context.MutableRequest;
+import io.gravitee.gateway.jupiter.core.context.MutableResponse;
+import io.gravitee.gateway.jupiter.reactor.handler.context.DefaultRequestExecutionContext;
 import io.gravitee.policy.oauth2.configuration.OAuth2PolicyConfiguration;
+import io.gravitee.policy.oauth2.introspection.TokenIntrospectionResult;
 import io.gravitee.policy.oauth2.resource.CacheElement;
 import io.gravitee.reporter.api.http.Metrics;
 import io.gravitee.resource.api.ResourceManager;
@@ -451,8 +456,8 @@ class Oauth2PolicyTest {
     }
 
     @Test
-    void shouldReturnOrder0() {
-        assertEquals(0, cut.order());
+    void shouldReturnOrder100() {
+        assertEquals(100, cut.order());
     }
 
     @Test
@@ -466,46 +471,68 @@ class Oauth2PolicyTest {
     }
 
     @Test
-    void shouldInterruptOnSubscriptionInvalid() {
-        when(ctx.interruptWith(any())).thenReturn(Completable.error(new RuntimeException(MOCK_EXCEPTION)));
+    void extractSecurityTokenShouldReturnEmptyWhenNoOauth2Resource() {
+        final TestObserver<SecurityToken> obs = cut.extractSecurityToken(ctx).test();
 
-        final TestObserver<Void> obs = cut.onInvalidSubscription(ctx).test();
-
-        obs.assertError(Throwable.class);
-
-        verify(ctx)
-            .interruptWith(
-                argThat(
-                    failure -> {
-                        assertEquals(HttpStatusCode.UNAUTHORIZED_401, failure.statusCode());
-                        assertEquals(OAUTH2_ERROR_ACCESS_DENIED, failure.message());
-                        assertEquals(GATEWAY_OAUTH2_ACCESS_DENIED_KEY, failure.key());
-                        assertNull(failure.parameters());
-                        assertNull(failure.contentType());
-
-                        return true;
-                    }
-                )
-            );
+        obs.assertComplete().assertValueCount(0);
+        verify(ctx, times(0)).setAttribute(eq(CONTEXT_ATTRIBUTE_JWT), any());
     }
 
     @Test
-    void shouldReturnCanHandleWhenTokenIsPresent() {
-        final String token = prepareToken();
-        final TestObserver<Boolean> obs = cut.support(ctx).test();
+    void extractSecurityTokenShouldReturnEmptyWhenTokenIsAbsent() {
+        prepareOauth2Resource();
 
-        obs.assertResult(true);
+        final TestObserver<SecurityToken> obs = cut.extractSecurityToken(ctx).test();
 
+        obs.assertComplete().assertValueCount(0);
+        verify(ctx, times(0)).setAttribute(eq(CONTEXT_ATTRIBUTE_JWT), any());
+    }
+
+    @Test
+    void extractSecurityTokenShouldReturnEmptyWhenTokenIsPresentButIntrospectionFails() {
+        prepareOauth2Resource();
+        String token = prepareToken();
+        prepareIntrospection(token, null, false);
+
+        final TestObserver<SecurityToken> obs = cut.extractSecurityToken(ctx).test();
+
+        obs.assertComplete().assertValueCount(0);
+    }
+
+    @Test
+    void extractSecurityTokenShouldReturnTokenWhenTokenIsPresentAndIntrospectionSucceed() throws IOException {
+        prepareOauth2Resource();
+        String token = prepareToken();
+        final String payload = readResource("/io/gravitee/policy/oauth2/oauth2-response09.json");
+        prepareIntrospection(token, payload, true);
+
+        final TestObserver<SecurityToken> obs = cut.extractSecurityToken(ctx).test();
+
+        obs.assertComplete().assertValueCount(1);
+        obs.assertValue(
+            securityToken ->
+                securityToken.getTokenType().equals(SecurityToken.TokenType.CLIENT_ID.name()) &&
+                securityToken.getTokenValue().equals("my-test-client-id")
+        );
         verify(ctx).setAttribute(eq(CONTEXT_ATTRIBUTE_JWT), Mockito.<LazyJWT>argThat(jwt -> token.equals(jwt.getToken())));
     }
 
     @Test
-    void shouldReturnCannotHandleWhenTokenIsAbsent() {
-        final TestObserver<Boolean> obs = cut.support(ctx).test();
+    void shouldIntrospectOnlyOnce() throws IOException {
+        String token = "my-test-token";
 
-        obs.assertResult(false);
+        final String payload = readJsonResource("/io/gravitee/policy/oauth2/oauth2-response09.json").toString();
+        prepareIntrospection(token, payload, true);
 
-        verify(ctx, times(0)).setAttribute(eq(CONTEXT_ATTRIBUTE_JWT), any());
+        RequestExecutionContext ctx = new DefaultRequestExecutionContext(mock(MutableRequest.class), mock(MutableResponse.class));
+        TestObserver<TokenIntrospectionResult> result1 = cut.introspectAccessToken(ctx, token, oAuth2Resource).test();
+        TestObserver<TokenIntrospectionResult> result2 = cut.introspectAccessToken(ctx, token, oAuth2Resource).test();
+
+        result1.assertComplete().assertValueCount(1);
+        result2.assertComplete().assertValueCount(1);
+
+        // ensure introspection as been made only once
+        verify(oAuth2Resource, times(1)).introspect(any(), any());
     }
 
     private String prepareToken() {
@@ -525,8 +552,8 @@ class Oauth2PolicyTest {
 
     private void prepareIntrospection(String token, String payload, boolean success) {
         final OAuth2Response oAuth2Response = mock(OAuth2Response.class);
-        when(oAuth2Response.isSuccess()).thenReturn(success);
-        when(oAuth2Response.getPayload()).thenReturn(payload);
+        lenient().when(oAuth2Response.isSuccess()).thenReturn(success);
+        lenient().when(oAuth2Response.getPayload()).thenReturn(payload);
 
         doAnswer(
                 i -> {
