@@ -35,7 +35,7 @@
 
     <properties>
         <gravitee-bom.version>2.6</gravitee-bom.version>
-        <gravitee-gateway-api.version>1.38.0</gravitee-gateway-api.version>
+        <gravitee-gateway-api.version>1.39.0</gravitee-gateway-api.version>
         <gravitee-expression-language.version>1.10.1</gravitee-expression-language.version>
         <gravitee-policy-api.version>1.11.0</gravitee-policy-api.version>
         <gravitee-resource-api.version>1.1.0</gravitee-resource-api.version>
@@ -183,6 +183,12 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.gravitee.apim.gateway</groupId>
+            <artifactId>gravitee-apim-gateway-tests-sdk</artifactId>
+            <version>${gravitee-apim-gateway-tests-sdk.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
