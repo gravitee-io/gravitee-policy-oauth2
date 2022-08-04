@@ -18,6 +18,7 @@ package io.gravitee.policy.oauth2.utils;
 import io.gravitee.common.util.MultiValueMap;
 import io.gravitee.gateway.api.http.HttpHeaderNames;
 import io.gravitee.gateway.api.http.HttpHeaders;
+import io.gravitee.gateway.jupiter.api.context.HttpRequest;
 import io.gravitee.gateway.jupiter.api.context.Request;
 import java.util.List;
 import java.util.Optional;
@@ -47,7 +48,7 @@ public class TokenExtractor {
      *
      * @return the access token as string, {@link Optional#empty()} if no token has been found.
      */
-    public static Optional<String> extract(Request request) {
+    public static Optional<String> extract(HttpRequest request) {
         return extractFromHeaders(request.headers()).or(() -> extractFromParameters(request.parameters()));
     }
 

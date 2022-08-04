@@ -21,20 +21,14 @@ import static io.gravitee.gateway.api.ExecutionContext.ATTR_USER;
 import static io.gravitee.gateway.api.ExecutionContext.ATTR_USER_ROLES;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.gravitee.common.http.HttpStatusCode;
 import io.gravitee.common.http.MediaType;
 import io.gravitee.common.security.jwt.LazyJWT;
-import io.gravitee.gateway.api.ExecutionContext;
-import io.gravitee.gateway.api.Request;
-import io.gravitee.gateway.api.Response;
-import io.gravitee.gateway.api.handler.Handler;
 import io.gravitee.gateway.api.http.HttpHeaderNames;
 import io.gravitee.gateway.jupiter.api.ExecutionFailure;
+import io.gravitee.gateway.jupiter.api.context.HttpExecutionContext;
+import io.gravitee.gateway.jupiter.api.context.MessageExecutionContext;
 import io.gravitee.gateway.jupiter.api.context.RequestExecutionContext;
 import io.gravitee.gateway.jupiter.api.policy.SecurityPolicy;
-import io.gravitee.policy.api.PolicyChain;
-import io.gravitee.policy.api.PolicyResult;
 import io.gravitee.policy.api.annotations.RequireResource;
 import io.gravitee.policy.oauth2.configuration.OAuth2PolicyConfiguration;
 import io.gravitee.policy.oauth2.resource.CacheElement;
@@ -48,7 +42,8 @@ import io.gravitee.resource.oauth2.api.OAuth2Response;
 import io.reactivex.Completable;
 import io.reactivex.Maybe;
 import io.reactivex.Single;
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,16 +54,16 @@ import org.slf4j.LoggerFactory;
 @RequireResource
 public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
 
-    private static final Logger log = LoggerFactory.getLogger(Oauth2Policy.class);
     public static final String CONTEXT_ATTRIBUTE_JWT = "jwt";
     public static final String CONTEXT_ATTRIBUTE_TOKEN = CONTEXT_ATTRIBUTE_PREFIX + "token";
+    public static final String OAUTH2_ERROR_ACCESS_DENIED = "access_denied";
+    public static final String GATEWAY_OAUTH2_ACCESS_DENIED_KEY = "GATEWAY_OAUTH2_ACCESS_DENIED";
     protected static final String NO_OAUTH_SERVER_CONFIGURED_MESSAGE = "No OAuth authorization server has been configured";
     protected static final String NO_AUTHORIZATION_HEADER_SUPPLIED_MESSAGE = "No OAuth authorization header was supplied";
     protected static final String TEMPORARILY_UNAVAILABLE_MESSAGE = "temporarily_unavailable";
     protected static final String INVALID_SERVER_RESPONSE_MESSAGE = "Invalid response from authorization server";
     protected static final String INSUFFICIENT_SCOPES_MESSAGE = "The request requires higher privileges than provided by the access token.";
-    public static final String OAUTH2_ERROR_ACCESS_DENIED = "access_denied";
-    public static final String GATEWAY_OAUTH2_ACCESS_DENIED_KEY = "GATEWAY_OAUTH2_ACCESS_DENIED";
+    private static final Logger log = LoggerFactory.getLogger(Oauth2Policy.class);
     private static final Single<Boolean> TRUE = Single.just(true);
 
     public Oauth2Policy(OAuth2PolicyConfiguration oAuth2PolicyConfiguration) {
@@ -86,7 +81,7 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
     }
 
     @Override
-    public Single<Boolean> support(RequestExecutionContext ctx) {
+    public Single<Boolean> support(HttpExecutionContext ctx) {
         final LazyJWT jwtToken = ctx.getAttribute(CONTEXT_ATTRIBUTE_JWT);
         if (jwtToken != null) {
             return TRUE;
@@ -104,14 +99,23 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
     }
 
     @Override
-    public Completable onInvalidSubscription(RequestExecutionContext ctx) {
+    public Completable onInvalidSubscription(HttpExecutionContext ctx) {
         return ctx.interruptWith(
             new ExecutionFailure(UNAUTHORIZED_401).key(GATEWAY_OAUTH2_ACCESS_DENIED_KEY).message(OAUTH2_ERROR_ACCESS_DENIED)
         );
     }
 
     @Override
-    public Completable onRequest(RequestExecutionContext ctx) {
+    public Completable onRequest(final RequestExecutionContext ctx) {
+        return handleSecurity(ctx);
+    }
+
+    @Override
+    public Completable onMessageRequest(final MessageExecutionContext ctx) {
+        return handleSecurity(ctx);
+    }
+
+    private Completable handleSecurity(final HttpExecutionContext ctx) {
         return Completable
             .defer(
                 () -> {
@@ -155,7 +159,7 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
             );
     }
 
-    private Maybe<String> extractToken(RequestExecutionContext ctx) {
+    private Maybe<String> extractToken(HttpExecutionContext ctx) {
         return Maybe
             .defer(
                 () -> {
@@ -185,7 +189,7 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
     }
 
     private Completable validateOAuth2Payload(
-        RequestExecutionContext ctx,
+        HttpExecutionContext ctx,
         String oauth2payload,
         CacheResource<?> cacheResource,
         OAuth2Resource<?> oauth2Resource
@@ -243,7 +247,7 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
     }
 
     private Completable introspectAccessToken(
-        RequestExecutionContext ctx,
+        HttpExecutionContext ctx,
         String accessToken,
         CacheResource<?> cacheResource,
         OAuth2Resource<?> oauth2Resource
@@ -284,7 +288,7 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
      *      error="invalid_token",
      *      error_description="The access token expired"
      */
-    private Completable sendError(RequestExecutionContext ctx, String responseKey, String error, String description) {
+    private Completable sendError(HttpExecutionContext ctx, String responseKey, String error, String description) {
         String headerValue =
             BEARER_AUTHORIZATION_TYPE +
             " realm=\"gravitee.io\"," +
@@ -300,7 +304,7 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
         return ctx.interruptWith(new ExecutionFailure(UNAUTHORIZED_401).key(responseKey).message(description));
     }
 
-    private OAuth2Resource<?> getOauth2Resource(RequestExecutionContext ctx) {
+    private OAuth2Resource<?> getOauth2Resource(HttpExecutionContext ctx) {
         if (oAuth2PolicyConfiguration.getOauthResource() == null) {
             return null;
         }
@@ -313,7 +317,7 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
             );
     }
 
-    private CacheResource<?> getCacheResource(RequestExecutionContext ctx) {
+    private CacheResource<?> getCacheResource(HttpExecutionContext ctx) {
         if (oAuth2PolicyConfiguration.getOauthCacheResource() == null) {
             return null;
         }

@@ -22,7 +22,7 @@
 
     <groupId>io.gravitee.policy</groupId>
     <artifactId>gravitee-policy-oauth2</artifactId>
-    <version>1.20.0</version>
+    <version>1.21.0-8238-entrypoint-SNAPSHOT</version>
 
     <name>Gravitee.io APIM - Policy - OAuth2</name>
     <description>Description of the OAuth2 Gravitee Policy</description>
@@ -34,17 +34,20 @@
     </parent>
 
     <properties>
-        <gravitee-bom.version>2.5</gravitee-bom.version>
-        <gravitee-gateway-api.version>1.33.0</gravitee-gateway-api.version>
+        <gravitee-bom.version>2.6</gravitee-bom.version>
+        <gravitee-gateway-api.version>1.38.0</gravitee-gateway-api.version>
+        <gravitee-expression-language.version>1.10.1</gravitee-expression-language.version>
         <gravitee-policy-api.version>1.11.0</gravitee-policy-api.version>
         <gravitee-resource-api.version>1.1.0</gravitee-resource-api.version>
         <gravitee-common.version>1.27.0</gravitee-common.version>
+        <gravitee-node.version>1.24.1</gravitee-node.version>
         <gravitee-resource-oauth2-provider-api.version>1.3.0</gravitee-resource-oauth2-provider-api.version>
         <gravitee-resource-cache-provider-api.version>1.2.0</gravitee-resource-cache-provider-api.version>
         <nimbus-jose-jwt.version>9.15.2</nimbus-jose-jwt.version>
         <maven-assembly-plugin.version>2.5.5</maven-assembly-plugin.version>
         <!-- Property used by the publication job in CI-->
         <publish-folder-path>graviteeio-apim/plugins/policies</publish-folder-path>
+        <guava.version>31.1-jre</guava.version>
     </properties>
 
     <dependencyManagement>
@@ -62,6 +65,16 @@
                 <artifactId>gravitee-common</artifactId>
                 <version>${gravitee-common.version}</version>
             </dependency>
+            <dependency>
+                <groupId>io.gravitee.node</groupId>
+                <artifactId>gravitee-node-api</artifactId>
+                <version>${gravitee-node.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.gravitee.gateway</groupId>
+                <artifactId>gravitee-gateway-api</artifactId>
+                <version>${gravitee-gateway-api.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -70,7 +83,13 @@
         <dependency>
             <groupId>io.gravitee.gateway</groupId>
             <artifactId>gravitee-gateway-api</artifactId>
-            <version>${gravitee-gateway-api.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.gravitee.el</groupId>
+            <artifactId>gravitee-expression-language</artifactId>
+            <version>${gravitee-expression-language.version}</version>
             <scope>provided</scope>
         </dependency>
 
@@ -85,6 +104,18 @@
             <groupId>io.gravitee.policy</groupId>
             <artifactId>gravitee-policy-api</artifactId>
             <version>${gravitee-policy-api.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.gravitee.common</groupId>
+            <artifactId>gravitee-common</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.gravitee.node</groupId>
+            <artifactId>gravitee-node-api</artifactId>
             <scope>provided</scope>
         </dependency>
 
@@ -106,12 +137,6 @@
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-core</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>io.gravitee.common</groupId>
-            <artifactId>gravitee-common</artifactId>
             <scope>provided</scope>
         </dependency>
 
@@ -158,6 +183,12 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>${guava.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -212,9 +243,9 @@
             <plugin>
                 <groupId>com.hubspot.maven.plugins</groupId>
                 <artifactId>prettier-maven-plugin</artifactId>
-                <version>0.12</version>
+                <version>0.18</version>
                 <configuration>
-                    <nodeVersion>12.13.0</nodeVersion>
+                    <nodeVersion>16.16.0</nodeVersion>
                     <prettierJavaVersion>1.0.1</prettierJavaVersion>
                 </configuration>
                 <executions>
