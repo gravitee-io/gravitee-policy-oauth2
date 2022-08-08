@@ -1,3 +1,10 @@
+# [1.21.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/1.20.0...1.21.0) (2022-08-08)
+
+
+### Features
+
+* **sme:** update security policy to be compatible with async reactor ([b22e2df](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/b22e2df14fea2ac20e19a869a7a9cdb0948be6a9))
+
 # [1.20.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/1.19.0...1.20.0) (2022-06-10)
 
 
