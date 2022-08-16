@@ -5,6 +5,13 @@
 
 * migrate to the new version of Jupiter's SecurityPolicy ([1976b54](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/1976b544e18099ceaaacd5164e50257fc1dfa95a))
 
+# [1.22.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/1.21.0...1.22.0) (2022-08-16)
+
+
+### Features
+
+* migrate to the new version of Jupiter's SecurityPolicy ([1976b54](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/1976b544e18099ceaaacd5164e50257fc1dfa95a))
+
 # [1.21.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/1.20.0...1.21.0) (2022-08-08)
 
 
