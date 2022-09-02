@@ -19,14 +19,12 @@ import static io.gravitee.common.http.HttpStatusCode.SERVICE_UNAVAILABLE_503;
 import static io.gravitee.common.http.HttpStatusCode.UNAUTHORIZED_401;
 import static io.gravitee.gateway.api.ExecutionContext.ATTR_USER;
 import static io.gravitee.gateway.api.ExecutionContext.ATTR_USER_ROLES;
-import static io.gravitee.gateway.jupiter.api.context.ExecutionContext.ATTR_INTERNAL_PREFIX;
 
 import io.gravitee.common.http.MediaType;
 import io.gravitee.common.security.jwt.LazyJWT;
 import io.gravitee.gateway.api.http.HttpHeaderNames;
 import io.gravitee.gateway.jupiter.api.ExecutionFailure;
 import io.gravitee.gateway.jupiter.api.context.HttpExecutionContext;
-import io.gravitee.gateway.jupiter.api.context.MessageExecutionContext;
 import io.gravitee.gateway.jupiter.api.policy.SecurityPolicy;
 import io.gravitee.gateway.jupiter.api.policy.SecurityToken;
 import io.gravitee.policy.api.annotations.RequireResource;
@@ -60,7 +58,7 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
     public static final String CONTEXT_ATTRIBUTE_JWT = "jwt";
     public static final String CONTEXT_ATTRIBUTE_TOKEN = CONTEXT_ATTRIBUTE_PREFIX + "token";
 
-    public static final String CONTEXT_INTERNAL_ATTR_TOKEN_INTROSPECTIONS = ATTR_INTERNAL_PREFIX + "token_introspection_cache";
+    public static final String ATTR_INTERNAL_TOKEN_INTROSPECTIONS = "token-introspection-cache";
 
     protected static final String NO_OAUTH_SERVER_CONFIGURED_MESSAGE = "No OAuth authorization server has been configured";
     protected static final String NO_AUTHORIZATION_HEADER_SUPPLIED_MESSAGE = "No OAuth authorization header was supplied";
@@ -373,10 +371,10 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
      * @return TokenIntrospectionCache
      */
     private TokenIntrospectionCache getContextTokenIntrospectionCache(HttpExecutionContext ctx) {
-        TokenIntrospectionCache cache = ctx.getInternalAttribute(CONTEXT_INTERNAL_ATTR_TOKEN_INTROSPECTIONS);
+        TokenIntrospectionCache cache = ctx.getInternalAttribute(ATTR_INTERNAL_TOKEN_INTROSPECTIONS);
         if (cache == null) {
             cache = new TokenIntrospectionCache();
-            ctx.setInternalAttribute(CONTEXT_INTERNAL_ATTR_TOKEN_INTROSPECTIONS, cache);
+            ctx.setInternalAttribute(ATTR_INTERNAL_TOKEN_INTROSPECTIONS, cache);
         }
         return cache;
     }
