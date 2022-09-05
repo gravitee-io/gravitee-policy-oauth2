@@ -15,54 +15,17 @@
  */
 package io.gravitee.policy.oauth2;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
-
 import io.gravitee.apim.gateway.tests.sdk.configuration.GatewayConfigurationBuilder;
-import io.gravitee.definition.model.Api;
-import io.gravitee.definition.model.ExecutionMode;
-import io.gravitee.gateway.api.service.ApiKey;
-import io.gravitee.gateway.api.service.Subscription;
-import io.gravitee.gateway.api.service.SubscriptionService;
-import java.util.Optional;
-import org.junit.jupiter.api.Disabled;
-import org.mockito.stubbing.OngoingStubbing;
+import io.gravitee.policy.v3.oauth2.Oauth2PolicyV3IntegrationTest;
 
 /**
  * @author GraviteeSource Team
  */
-@Disabled("Temporary disabled to make build pass and waiting for a new version of tests-sdk")
-public class Oauth2PolicyV3CompatibilityIntegrationTest extends Oauth2PolicyIntegrationTest {
+public class Oauth2PolicyV3CompatibilityIntegrationTest extends Oauth2PolicyV3IntegrationTest {
 
     @Override
     protected void configureGateway(GatewayConfigurationBuilder gatewayConfigurationBuilder) {
         super.configureGateway(gatewayConfigurationBuilder);
         gatewayConfigurationBuilder.set("api.jupiterMode.enabled", "true");
-    }
-
-    @Override
-    public void configureApi(Api api) {
-        super.configureApi(api);
-        api.setExecutionMode(ExecutionMode.V3);
-    }
-
-    /**
-     * This overrides subscription search :
-     * - in jupiter its searched with getByApiAndSecurityToken
-     * - in V3 its searches with api/clientId/plan
-     */
-    @Override
-    protected OngoingStubbing<Optional<Subscription>> whenSearchingSubscription(String api, String clientId, String plan) {
-        return when(getBean(SubscriptionService.class).getByApiAndClientIdAndPlan(api, clientId, plan));
-    }
-
-    /**
-     * This overrides 401 response HTTP body content assertion :
-     * - in jupiter, it's "Unauthorized"
-     * - in V3, it's sometimes "Unauthorized", sometimes "access_denied", or null
-     */
-    @Override
-    protected void assertUnauthorizedResponseBody(String responseBody) {
-        assertThat(responseBody).isIn("Unauthorized", "access_denied", null);
     }
 }
