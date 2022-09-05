@@ -1,3 +1,15 @@
+# [1.23.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/1.22.0...1.23.0) (2022-09-05)
+
+
+### Bug Fixes
+
+* plan selection for v3 engine ([798f541](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/798f5413ff2d084bdac2687b7e12c43fc39ca5ce))
+
+
+### Features
+
+* improve execution context structure ([abd7531](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/abd753109ccef5b72055c6c74acf663a16e559dd)), closes [gravitee-io/issues#8386](https://github.com/gravitee-io/issues/issues/8386)
+
 # [1.22.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/1.21.0...1.22.0) (2022-08-16)
 
 
