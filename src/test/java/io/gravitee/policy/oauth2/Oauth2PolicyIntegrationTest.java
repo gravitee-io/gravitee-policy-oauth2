@@ -39,10 +39,10 @@ import io.gravitee.gateway.api.service.SubscriptionService;
 import io.gravitee.gateway.jupiter.api.policy.SecurityToken;
 import io.gravitee.plugin.resource.ResourcePlugin;
 import io.gravitee.policy.oauth2.configuration.OAuth2PolicyConfiguration;
-import io.reactivex.observers.TestObserver;
-import io.vertx.reactivex.core.buffer.Buffer;
-import io.vertx.reactivex.ext.web.client.HttpResponse;
-import io.vertx.reactivex.ext.web.client.WebClient;
+import io.reactivex.rxjava3.observers.TestObserver;
+import io.vertx.rxjava3.core.buffer.Buffer;
+import io.vertx.rxjava3.ext.web.client.HttpResponse;
+import io.vertx.rxjava3.ext.web.client.WebClient;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Date;
@@ -100,7 +100,7 @@ public class Oauth2PolicyIntegrationTest extends AbstractPolicyTest<Oauth2Policy
 
     @Test
     @DisplayName("Should receive 401 - Unauthorized when calling without any Authorization Header")
-    void shouldGet401_ifNoToken(WebClient client) {
+    void shouldGet401_ifNoToken(WebClient client) throws InterruptedException {
         wiremock.stubFor(get("/team").willReturn(ok("response from backend")));
 
         final TestObserver<HttpResponse<Buffer>> obs = client.get("/test").rxSend().test();
@@ -110,7 +110,7 @@ public class Oauth2PolicyIntegrationTest extends AbstractPolicyTest<Oauth2Policy
 
     @Test
     @DisplayName("Should receive 401 - Unauthorized when calling with a wrong Authorization Header")
-    void shouldGet401_ifWrongToken(WebClient client) {
+    void shouldGet401_ifWrongToken(WebClient client) throws InterruptedException {
         wiremock.stubFor(get("/team").willReturn(ok("response from backend")));
 
         final TestObserver<HttpResponse<Buffer>> obs = client
@@ -124,7 +124,7 @@ public class Oauth2PolicyIntegrationTest extends AbstractPolicyTest<Oauth2Policy
 
     @Test
     @DisplayName("Should receive 401 - Unauthorized when calling with an token, which introspection returns an invalid payload")
-    void shouldGet401_ifInvalidIntrospectionPayload(WebClient client) {
+    void shouldGet401_ifInvalidIntrospectionPayload(WebClient client) throws InterruptedException {
         wiremock.stubFor(get("/team").willReturn(ok("response from backend")));
 
         final TestObserver<HttpResponse<Buffer>> obs = client
@@ -139,7 +139,7 @@ public class Oauth2PolicyIntegrationTest extends AbstractPolicyTest<Oauth2Policy
 
     @Test
     @DisplayName("Should receive 401 - Unauthorized when calling with an valid token, but introspection return no client_id")
-    void shouldGet401_ifNoClientId(WebClient client) {
+    void shouldGet401_ifNoClientId(WebClient client) throws InterruptedException {
         wiremock.stubFor(get("/team").willReturn(ok("response from backend")));
 
         final TestObserver<HttpResponse<Buffer>> obs = client
@@ -154,7 +154,7 @@ public class Oauth2PolicyIntegrationTest extends AbstractPolicyTest<Oauth2Policy
 
     @Test
     @DisplayName("Should receive 401 - Unauthorized when calling with an valid token, but no subscription found")
-    void shouldGet401_ifSubscriptionNotFound(WebClient client) {
+    void shouldGet401_ifSubscriptionNotFound(WebClient client) throws InterruptedException {
         wiremock.stubFor(get("/team").willReturn(ok("response from backend")));
 
         // no subscription found
@@ -171,7 +171,7 @@ public class Oauth2PolicyIntegrationTest extends AbstractPolicyTest<Oauth2Policy
 
     @Test
     @DisplayName("Should receive 401 - Unauthorized when calling with an valid token, but subscription is expired")
-    void shouldGet401_ifSubscriptionExpired(WebClient client) {
+    void shouldGet401_ifSubscriptionExpired(WebClient client) throws InterruptedException {
         wiremock.stubFor(get("/team").willReturn(ok("response from backend")));
 
         // subscription found is expired
@@ -188,7 +188,7 @@ public class Oauth2PolicyIntegrationTest extends AbstractPolicyTest<Oauth2Policy
 
     @Test
     @DisplayName("Should access API with correct Authorization header and a valid subscription")
-    void shouldAccessApiWithValidTokenAndSubscription(WebClient client) {
+    void shouldAccessApiWithValidTokenAndSubscription(WebClient client) throws InterruptedException {
         wiremock.stubFor(get("/team").willReturn(ok("response from backend")));
 
         // subscription found is valid
@@ -225,7 +225,7 @@ public class Oauth2PolicyIntegrationTest extends AbstractPolicyTest<Oauth2Policy
         return subscription;
     }
 
-    private void assert401unauthorized(TestObserver<HttpResponse<Buffer>> obs) {
+    private void assert401unauthorized(TestObserver<HttpResponse<Buffer>> obs) throws InterruptedException {
         awaitTerminalEvent(obs)
             .assertComplete()
             .assertValue(
