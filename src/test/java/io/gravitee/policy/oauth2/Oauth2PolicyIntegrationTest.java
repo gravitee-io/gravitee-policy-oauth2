@@ -39,16 +39,18 @@ import io.gravitee.gateway.api.service.SubscriptionService;
 import io.gravitee.gateway.jupiter.api.policy.SecurityToken;
 import io.gravitee.plugin.resource.ResourcePlugin;
 import io.gravitee.policy.oauth2.configuration.OAuth2PolicyConfiguration;
-import io.reactivex.rxjava3.observers.TestObserver;
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.core.Single;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.rxjava3.core.buffer.Buffer;
-import io.vertx.rxjava3.ext.web.client.HttpResponse;
-import io.vertx.rxjava3.ext.web.client.WebClient;
+import io.vertx.rxjava3.core.http.HttpClient;
+import io.vertx.rxjava3.core.http.HttpClientRequest;
+import io.vertx.rxjava3.core.http.HttpClientResponse;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.OngoingStubbing;
@@ -100,112 +102,109 @@ public class Oauth2PolicyIntegrationTest extends AbstractPolicyTest<Oauth2Policy
 
     @Test
     @DisplayName("Should receive 401 - Unauthorized when calling without any Authorization Header")
-    void shouldGet401_ifNoToken(WebClient client) throws InterruptedException {
+    void shouldGet401_ifNoToken(HttpClient client) throws InterruptedException {
         wiremock.stubFor(get("/team").willReturn(ok("response from backend")));
 
-        final TestObserver<HttpResponse<Buffer>> obs = client.get("/test").rxSend().test();
+        Single<HttpClientResponse> httpClientResponse = client.rxRequest(HttpMethod.GET, "/test").flatMap(HttpClientRequest::rxSend);
 
-        assert401unauthorized(obs);
+        assert401unauthorized(httpClientResponse);
     }
 
     @Test
     @DisplayName("Should receive 401 - Unauthorized when calling with a wrong Authorization Header")
-    void shouldGet401_ifWrongToken(WebClient client) throws InterruptedException {
+    void shouldGet401_ifWrongToken(HttpClient client) throws InterruptedException {
         wiremock.stubFor(get("/team").willReturn(ok("response from backend")));
 
-        final TestObserver<HttpResponse<Buffer>> obs = client
-            .get("/test")
-            .putHeader("Authorization", "Bearer " + DummyOAuth2Resource.TOKEN_FAIL)
-            .rxSend()
-            .test();
+        Single<HttpClientResponse> httpClientResponse = client
+            .rxRequest(HttpMethod.GET, "/test")
+            .flatMap(request -> request.putHeader("Authorization", "Bearer " + DummyOAuth2Resource.TOKEN_FAIL).rxSend());
 
-        assert401unauthorized(obs);
+        assert401unauthorized(httpClientResponse);
     }
 
     @Test
     @DisplayName("Should receive 401 - Unauthorized when calling with an token, which introspection returns an invalid payload")
-    void shouldGet401_ifInvalidIntrospectionPayload(WebClient client) throws InterruptedException {
+    void shouldGet401_ifInvalidIntrospectionPayload(HttpClient client) throws InterruptedException {
         wiremock.stubFor(get("/team").willReturn(ok("response from backend")));
 
-        final TestObserver<HttpResponse<Buffer>> obs = client
-            .get("/test")
-            .putHeader("Authorization", "Bearer " + DummyOAuth2Resource.TOKEN_SUCCESS_WITH_INVALID_PAYLOAD)
-            .rxSend()
-            .test();
+        Single<HttpClientResponse> httpClientResponse = client
+            .rxRequest(HttpMethod.GET, "/test")
+            .flatMap(
+                request -> request.putHeader("Authorization", "Bearer " + DummyOAuth2Resource.TOKEN_SUCCESS_WITH_INVALID_PAYLOAD).rxSend()
+            );
 
         verifyNoInteractions(getBean(SubscriptionService.class));
-        assert401unauthorized(obs);
+        assert401unauthorized(httpClientResponse);
     }
 
     @Test
     @DisplayName("Should receive 401 - Unauthorized when calling with an valid token, but introspection return no client_id")
-    void shouldGet401_ifNoClientId(WebClient client) throws InterruptedException {
+    void shouldGet401_ifNoClientId(HttpClient client) throws InterruptedException {
         wiremock.stubFor(get("/team").willReturn(ok("response from backend")));
 
-        final TestObserver<HttpResponse<Buffer>> obs = client
-            .get("/test")
-            .putHeader("Authorization", "Bearer " + DummyOAuth2Resource.TOKEN_SUCCESS_WITHOUT_CLIENT_ID)
-            .rxSend()
-            .test();
+        Single<HttpClientResponse> httpClientResponse = client
+            .rxRequest(HttpMethod.GET, "/test")
+            .flatMap(
+                request -> request.putHeader("Authorization", "Bearer " + DummyOAuth2Resource.TOKEN_SUCCESS_WITHOUT_CLIENT_ID).rxSend()
+            );
 
         verifyNoInteractions(getBean(SubscriptionService.class));
-        assert401unauthorized(obs);
+        assert401unauthorized(httpClientResponse);
     }
 
     @Test
     @DisplayName("Should receive 401 - Unauthorized when calling with an valid token, but no subscription found")
-    void shouldGet401_ifSubscriptionNotFound(WebClient client) throws InterruptedException {
+    void shouldGet401_ifSubscriptionNotFound(HttpClient client) throws InterruptedException {
         wiremock.stubFor(get("/team").willReturn(ok("response from backend")));
 
         // no subscription found
         whenSearchingSubscription(API_ID, CLIENT_ID, PLAN_ID).thenReturn(Optional.empty());
 
-        final TestObserver<HttpResponse<Buffer>> obs = client
-            .get("/test")
-            .putHeader("Authorization", "Bearer " + DummyOAuth2Resource.TOKEN_SUCCESS_WITH_CLIENT_ID)
-            .rxSend()
-            .test();
+        Single<HttpClientResponse> httpClientResponse = client
+            .rxRequest(HttpMethod.GET, "/test")
+            .flatMap(request -> request.putHeader("Authorization", "Bearer " + DummyOAuth2Resource.TOKEN_SUCCESS_WITH_CLIENT_ID).rxSend());
 
-        assert401unauthorized(obs);
+        assert401unauthorized(httpClientResponse);
     }
 
     @Test
     @DisplayName("Should receive 401 - Unauthorized when calling with an valid token, but subscription is expired")
-    void shouldGet401_ifSubscriptionExpired(WebClient client) throws InterruptedException {
+    void shouldGet401_ifSubscriptionExpired(HttpClient client) throws InterruptedException {
         wiremock.stubFor(get("/team").willReturn(ok("response from backend")));
 
         // subscription found is expired
         whenSearchingSubscription(API_ID, CLIENT_ID, PLAN_ID).thenReturn(Optional.of(fakeSubscriptionFromCache(true)));
 
-        final TestObserver<HttpResponse<Buffer>> obs = client
-            .get("/test")
-            .putHeader("Authorization", "Bearer " + DummyOAuth2Resource.TOKEN_SUCCESS_WITH_CLIENT_ID)
-            .rxSend()
-            .test();
+        Single<HttpClientResponse> httpClientResponse = client
+            .rxRequest(HttpMethod.GET, "/test")
+            .flatMap(request -> request.putHeader("Authorization", "Bearer " + DummyOAuth2Resource.TOKEN_SUCCESS_WITH_CLIENT_ID).rxSend());
 
-        assert401unauthorized(obs);
+        assert401unauthorized(httpClientResponse);
     }
 
     @Test
     @DisplayName("Should access API with correct Authorization header and a valid subscription")
-    void shouldAccessApiWithValidTokenAndSubscription(WebClient client) throws InterruptedException {
+    void shouldAccessApiWithValidTokenAndSubscription(HttpClient client) throws InterruptedException {
         wiremock.stubFor(get("/team").willReturn(ok("response from backend")));
 
         // subscription found is valid
         whenSearchingSubscription(API_ID, CLIENT_ID, PLAN_ID).thenReturn(Optional.of(fakeSubscriptionFromCache(false)));
 
-        final TestObserver<HttpResponse<Buffer>> obs = client
-            .get("/test")
-            .putHeader("Authorization", "Bearer " + DummyOAuth2Resource.TOKEN_SUCCESS_WITH_CLIENT_ID)
-            .rxSend()
-            .test();
-
-        awaitTerminalEvent(obs)
-            .assertComplete()
-            .assertValue(
+        client
+            .rxRequest(HttpMethod.GET, "/test")
+            .flatMap(request -> request.putHeader("Authorization", "Bearer " + DummyOAuth2Resource.TOKEN_SUCCESS_WITH_CLIENT_ID).rxSend())
+            .flatMapPublisher(
                 response -> {
                     assertThat(response.statusCode()).isEqualTo(200);
-                    assertThat(response.bodyAsString()).isEqualTo("response from backend");
+                    return response.toFlowable();
+                }
+            )
+            .test()
+            .await()
+            .assertComplete()
+            .assertValue(
+                body -> {
+                    assertThat(body.toString()).isEqualTo("response from backend");
                     return true;
                 }
             )
@@ -225,13 +224,20 @@ public class Oauth2PolicyIntegrationTest extends AbstractPolicyTest<Oauth2Policy
         return subscription;
     }
 
-    private void assert401unauthorized(TestObserver<HttpResponse<Buffer>> obs) throws InterruptedException {
-        awaitTerminalEvent(obs)
-            .assertComplete()
-            .assertValue(
+    private void assert401unauthorized(Single<HttpClientResponse> httpClientResponse) throws InterruptedException {
+        httpClientResponse
+            .flatMapPublisher(
                 response -> {
                     assertThat(response.statusCode()).isEqualTo(401);
-                    assertUnauthorizedResponseBody(response.bodyAsString());
+                    return response.body().toFlowable();
+                }
+            )
+            .test()
+            .await()
+            .assertComplete()
+            .assertValue(
+                body -> {
+                    assertUnauthorizedResponseBody(body.toString());
                     return true;
                 }
             )
