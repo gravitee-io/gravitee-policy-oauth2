@@ -52,16 +52,17 @@ public class Oauth2PolicyV3IntegrationTest extends Oauth2PolicyIntegrationTest {
      */
     @Override
     protected OngoingStubbing<Optional<Subscription>> whenSearchingSubscription(String api, String clientId, String plan) {
-        return when(getBean(SubscriptionService.class).getByApiAndClientIdAndPlan(api, clientId, plan));
+        // FIXME: Use plan instead of `null` to properly handle plan selection in multi-plan context
+        return when(getBean(SubscriptionService.class).getByApiAndClientIdAndPlan(api, clientId, null));
     }
 
     /**
      * This overrides 401 response HTTP body content assertion :
      * - in jupiter, it's "Unauthorized"
-     * - in V3, it's sometimes "Unauthorized", sometimes "access_denied", or null
+     * - in V3, it's sometimes "Unauthorized", sometimes "access_denied", or empty
      */
     @Override
     protected void assertUnauthorizedResponseBody(String responseBody) {
-        assertThat(responseBody).isIn("Unauthorized", "access_denied", null);
+        assertThat(responseBody).isIn("Unauthorized", "access_denied", "");
     }
 }
