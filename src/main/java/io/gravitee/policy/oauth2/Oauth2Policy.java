@@ -213,7 +213,7 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
         String user = tokenIntrospectionResult.extractUser(oauth2Resource.getUserClaim());
         if (user != null && !user.trim().isEmpty()) {
             ctx.setAttribute(ATTR_USER, user);
-            ctx.request().metrics().setUser(user);
+            ctx.metrics().setUser(user);
         }
 
         List<String> scopes = tokenIntrospectionResult.extractScopes(oauth2Resource.getScopeSeparator());

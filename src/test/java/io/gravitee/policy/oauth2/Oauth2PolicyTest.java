@@ -35,13 +35,13 @@ import io.gravitee.gateway.jupiter.api.context.HttpExecutionContext;
 import io.gravitee.gateway.jupiter.api.context.Request;
 import io.gravitee.gateway.jupiter.api.context.Response;
 import io.gravitee.gateway.jupiter.api.policy.SecurityToken;
+import io.gravitee.gateway.jupiter.core.context.DefaultExecutionContext;
 import io.gravitee.gateway.jupiter.core.context.MutableRequest;
 import io.gravitee.gateway.jupiter.core.context.MutableResponse;
-import io.gravitee.gateway.jupiter.reactor.handler.context.DefaultExecutionContext;
 import io.gravitee.policy.oauth2.configuration.OAuth2PolicyConfiguration;
 import io.gravitee.policy.oauth2.introspection.TokenIntrospectionResult;
 import io.gravitee.policy.oauth2.resource.CacheElement;
-import io.gravitee.reporter.api.http.Metrics;
+import io.gravitee.reporter.api.v4.metric.Metrics;
 import io.gravitee.resource.api.ResourceManager;
 import io.gravitee.resource.cache.api.Cache;
 import io.gravitee.resource.cache.api.CacheResource;
@@ -298,7 +298,7 @@ class Oauth2PolicyTest {
         prepareIntrospection(token, payload, true);
 
         final Metrics metrics = mock(Metrics.class);
-        when(request.metrics()).thenReturn(metrics);
+        when(ctx.metrics()).thenReturn(metrics);
 
         final TestObserver<Void> obs = cut.onRequest(ctx).test();
         obs.assertComplete();
