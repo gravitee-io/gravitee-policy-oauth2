@@ -1,3 +1,10 @@
+## [2.0.1-alpha.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/2.0.0...2.0.1-alpha.1) (2023-02-02)
+
+
+### Bug Fixes
+
+* bump gateway api version ([a922b41](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/a922b4199062f6cea05afef55a5b14e9237ff3cc))
+
 # [2.0.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/1.23.0...2.0.0) (2022-12-09)
 
 
