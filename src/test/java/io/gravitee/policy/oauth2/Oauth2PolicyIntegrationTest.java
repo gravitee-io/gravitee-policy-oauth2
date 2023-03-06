@@ -36,7 +36,7 @@ import io.gravitee.definition.model.ExecutionMode;
 import io.gravitee.definition.model.Plan;
 import io.gravitee.gateway.api.service.Subscription;
 import io.gravitee.gateway.api.service.SubscriptionService;
-import io.gravitee.gateway.jupiter.api.policy.SecurityToken;
+import io.gravitee.gateway.reactive.api.policy.SecurityToken;
 import io.gravitee.plugin.resource.ResourcePlugin;
 import io.gravitee.policy.oauth2.configuration.OAuth2PolicyConfiguration;
 import io.reactivex.rxjava3.core.Flowable;
