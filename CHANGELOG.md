@@ -1,3 +1,10 @@
+# [2.1.0-alpha.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/2.0.1-alpha.1...2.1.0-alpha.1) (2023-03-13)
+
+
+### Features
+
+* rename 'jupiter' package in 'reactive' ([55a95b4](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/55a95b4796a8bd1dad250774e5f2851a2cfea024))
+
 ## [2.0.1-alpha.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/2.0.0...2.0.1-alpha.1) (2023-02-02)
 
 
