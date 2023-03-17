@@ -1,3 +1,16 @@
+# [2.1.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/2.0.0...2.1.0) (2023-03-17)
+
+
+### Bug Fixes
+
+* bump gateway api version ([7013d66](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/7013d668d03f9d114a6804c76ca0bba33314b98f))
+* **deps:** bump dependencies ([02b63ef](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/02b63efad651902c9bf30066d50c4660405c1ad8))
+
+
+### Features
+
+* rename 'jupiter' package in 'reactive' ([302d7d0](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/302d7d0badc7b41abb2c763027edbefe0f3d2dd4))
+
 # [2.1.0-alpha.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/2.0.1-alpha.1...2.1.0-alpha.1) (2023-03-13)
 
 
