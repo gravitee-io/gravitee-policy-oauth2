@@ -48,7 +48,7 @@
         <gravitee-plugin.version>1.24.1</gravitee-plugin.version>
         <gravitee-connector-api.version>1.1.0</gravitee-connector-api.version>
         <nimbus-jose-jwt.version>9.15.2</nimbus-jose-jwt.version>
-        <maven-assembly-plugin.version>2.5.5</maven-assembly-plugin.version>
+        <maven-assembly-plugin.version>2.6</maven-assembly-plugin.version>
         <!-- Property used by the publication job in CI-->
         <publish-folder-path>graviteeio-apim/plugins/policies</publish-folder-path>
         <guava.version>31.1-jre</guava.version>
