@@ -1,66 +1,71 @@
 {
-  "type": "object",
-  "id": "urn:jsonschema:io:gravitee:policy:oauth2:configuration:OAuth2PolicyConfiguration",
-  "properties": {
-    "oauthResource": {
-      "title": "OAuth2 resource",
-      "description": "OAuth2 resource used to validate token. Supports EL.",
-      "type": "string",
-      "x-schema-form": {
-        "event": {
-          "name": "fetch-resources",
-          "regexTypes":  "^oauth2"
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "oauthResource": {
+            "title": "OAuth2 resource",
+            "description": "OAuth2 resource used to validate token. Supports EL.",
+            "type": "string",
+            "x-schema-form": {
+                "event": {
+                    "name": "fetch-resources",
+                    "regexTypes": "^oauth2"
+                },
+                "placeholder": "oauth-resource-name"
+            },
+            "gioConfig": {
+                "uiType": "plan-oauth2-resource"
+            }
         },
-        "placeholder": "oauth-resource-name"
-      }
-    },
-    "oauthCacheResource": {
-      "title": "Cache resource",
-      "description": "Cache resource used to store the tokens.",
-      "type": "string",
-      "x-schema-form": {
-        "event": {
-          "name": "fetch-resources",
-          "regexTypes":  "^cache"
+        "oauthCacheResource": {
+            "title": "Cache resource",
+            "description": "Cache resource used to store the tokens.",
+            "type": "string",
+            "x-schema-form": {
+                "event": {
+                    "name": "fetch-resources",
+                    "regexTypes": "^cache"
+                },
+                "placeholder": "cache-resource-name"
+            },
+            "gioConfig": {
+                "uiType": "plan-cache-resource"
+            }
         },
-        "placeholder": "cache-resource-name"
-      }
+        "extractPayload": {
+            "title": "Extract OAuth2 payload",
+            "description": "Push the token endpoint payload into the 'oauth.payload' context attribute.",
+            "type": "boolean",
+            "default": false
+        },
+        "checkRequiredScopes": {
+            "title": "Check scopes",
+            "description": "Check required scopes to access the resource",
+            "type": "boolean",
+            "default": false
+        },
+        "requiredScopes": {
+            "type": "array",
+            "title": "Required scopes",
+            "description": "List of required scopes to access the resource.",
+            "items": {
+                "type": "string",
+                "title": "Scope"
+            }
+        },
+        "modeStrict": {
+            "title": "Mode strict",
+            "description": "Check scopes with exactly those configured",
+            "type": "boolean",
+            "default": true
+        },
+        "propagateAuthHeader": {
+            "title": "Permit authorization header to the target endpoints",
+            "description": "Allows to propagate Authorization header to the target endpoints",
+            "type": "boolean",
+            "default": true
+        }
     },
-    "extractPayload": {
-      "title": "Extract OAuth2 payload",
-      "description": "Push the token endpoint payload into the 'oauth.payload' context attribute.",
-      "type": "boolean",
-      "default": false
-    },
-    "checkRequiredScopes": {
-      "title": "Check scopes",
-      "description": "Check required scopes to access the resource",
-      "type": "boolean",
-      "default": false
-    },
-    "requiredScopes": {
-      "type": "array",
-      "title": "Required scopes",
-      "description": "List of required scopes to access the resource.",
-      "items": {
-        "type": "string",
-        "title": "Scope"
-      }
-    },
-    "modeStrict": {
-      "title": "Mode strict",
-      "description": "Check scopes with exactly those configured",
-      "type": "boolean",
-      "default": true
-    },
-    "propagateAuthHeader": {
-      "title": "Propagate Authorization header",
-      "description": "Allows to propagate Authorization header to the target endpoints",
-      "type": "boolean",
-      "default": true
-    }
-  },
-  "required": [
-    "oauthResource"
-  ]
+    "required": ["oauthResource"],
+    "additionalProperties": false
 }
