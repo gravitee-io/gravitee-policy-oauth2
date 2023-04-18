@@ -1,3 +1,10 @@
+## [2.1.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/2.1.0...2.1.1) (2023-04-18)
+
+
+### Bug Fixes
+
+* clean schema-form to make it compatible with gio-form-json-schema component ([ba443ba](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/ba443baafb7036e9c8a2f7777e38193fd5a7c4ce))
+
 # [2.1.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/2.0.0...2.1.0) (2023-03-17)
 
 
