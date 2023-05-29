@@ -1,3 +1,10 @@
+# [2.2.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/2.1.1...2.2.0) (2023-05-29)
+
+
+### Features
+
+* provide execution phase in manifest ([df36130](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/df36130865b1e553c6cdf186d031756e636b58cc))
+
 ## [2.1.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/2.1.0...2.1.1) (2023-04-18)
 
 
