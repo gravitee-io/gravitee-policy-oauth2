@@ -36,6 +36,7 @@ public class TokenIntrospectionResult {
     private static final Logger LOGGER = LoggerFactory.getLogger(Oauth2Policy.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     public static final String OAUTH_PAYLOAD_SCOPE_NODE = "scope";
+    public static final String OAUTH_PAYLOAD_SCOPE_NODE_LEGACY = "scp";
     public static final String OAUTH_PAYLOAD_CLIENT_ID_NODE = "client_id";
     public static final String OAUTH_PAYLOAD_SUB_NODE = "sub";
     public static final String OAUTH_PAYLOAD_EXP = "exp";
@@ -83,6 +84,7 @@ public class TokenIntrospectionResult {
     public List<String> extractScopes(String scopeSeparator) {
         if (hasValidPayload()) {
             JsonNode scopesNode = oAuth2ResponseJsonNode.path(OAUTH_PAYLOAD_SCOPE_NODE);
+            if (scopesNode.isMissingNode()) scopesNode = oAuth2ResponseJsonNode.path(OAUTH_PAYLOAD_SCOPE_NODE_LEGACY);
             List<String> scopes;
             if (scopesNode instanceof ArrayNode) {
                 Iterator<JsonNode> scopeIterator = scopesNode.elements();
