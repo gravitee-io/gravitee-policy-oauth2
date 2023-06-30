@@ -1,3 +1,10 @@
+# [2.3.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/2.2.0...2.3.0) (2023-06-30)
+
+
+### Features
+
+* improve special resource type ui component to make it generic ([3757774](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/3757774fe7c0572acbc21df57988a179a691976c))
+
 # [2.2.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/2.1.1...2.2.0) (2023-05-29)
 
 
