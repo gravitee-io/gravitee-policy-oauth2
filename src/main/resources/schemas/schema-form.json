@@ -14,7 +14,10 @@
                 "placeholder": "oauth-resource-name"
             },
             "gioConfig": {
-                "uiType": "plan-oauth2-resource"
+                "uiType": "resource-type",
+                "uiTypeProps": {
+                    "resourceType": "oauth2"
+                }
             }
         },
         "oauthCacheResource": {
@@ -29,7 +32,10 @@
                 "placeholder": "cache-resource-name"
             },
             "gioConfig": {
-                "uiType": "plan-cache-resource"
+                "uiType": "resource-type",
+                "uiTypeProps": {
+                    "resourceType": "cache"
+                }
             }
         },
         "extractPayload": {
