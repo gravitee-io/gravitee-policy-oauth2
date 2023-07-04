@@ -1,3 +1,15 @@
+# [3.0.0-alpha.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/2.3.0...3.0.0-alpha.1) (2023-07-04)
+
+
+### Bug Fixes
+
+* bump dependencies versions ([1312b09](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/1312b09e067e0be6542ea956f8f67e9d3b10c4ce))
+
+
+### BREAKING CHANGES
+
+* use apim version 4
+
 # [2.3.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/2.2.0...2.3.0) (2023-06-30)
 
 
