@@ -101,10 +101,8 @@ class Oauth2PolicyV3Test {
 
         verify(mockPolicychain)
             .failWith(
-                argThat(
-                    result ->
-                        result.statusCode() == HttpStatusCode.UNAUTHORIZED_401 &&
-                        Oauth2PolicyV3.OAUTH2_MISSING_SERVER_KEY.equals(result.key())
+                argThat(result ->
+                    result.statusCode() == HttpStatusCode.UNAUTHORIZED_401 && Oauth2PolicyV3.OAUTH2_MISSING_SERVER_KEY.equals(result.key())
                 )
             );
     }
@@ -125,10 +123,8 @@ class Oauth2PolicyV3Test {
 
         verify(mockPolicychain)
             .failWith(
-                argThat(
-                    result ->
-                        result.statusCode() == HttpStatusCode.UNAUTHORIZED_401 &&
-                        Oauth2PolicyV3.OAUTH2_MISSING_HEADER_KEY.equals(result.key())
+                argThat(result ->
+                    result.statusCode() == HttpStatusCode.UNAUTHORIZED_401 && Oauth2PolicyV3.OAUTH2_MISSING_HEADER_KEY.equals(result.key())
                 )
             );
     }
@@ -151,10 +147,8 @@ class Oauth2PolicyV3Test {
 
         verify(mockPolicychain)
             .failWith(
-                argThat(
-                    result ->
-                        result.statusCode() == HttpStatusCode.UNAUTHORIZED_401 &&
-                        Oauth2PolicyV3.OAUTH2_MISSING_HEADER_KEY.equals(result.key())
+                argThat(result ->
+                    result.statusCode() == HttpStatusCode.UNAUTHORIZED_401 && Oauth2PolicyV3.OAUTH2_MISSING_HEADER_KEY.equals(result.key())
                 )
             );
     }
@@ -177,10 +171,9 @@ class Oauth2PolicyV3Test {
 
         verify(mockPolicychain)
             .failWith(
-                argThat(
-                    result ->
-                        result.statusCode() == HttpStatusCode.UNAUTHORIZED_401 &&
-                        Oauth2PolicyV3.OAUTH2_MISSING_ACCESS_TOKEN_KEY.equals(result.key())
+                argThat(result ->
+                    result.statusCode() == HttpStatusCode.UNAUTHORIZED_401 &&
+                    Oauth2PolicyV3.OAUTH2_MISSING_ACCESS_TOKEN_KEY.equals(result.key())
                 )
             );
     }
@@ -359,10 +352,9 @@ class Oauth2PolicyV3Test {
 
         verify(mockPolicychain)
             .failWith(
-                argThat(
-                    result ->
-                        result.statusCode() == HttpStatusCode.UNAUTHORIZED_401 &&
-                        Oauth2PolicyV3.OAUTH2_INVALID_ACCESS_TOKEN_KEY.equals(result.key())
+                argThat(result ->
+                    result.statusCode() == HttpStatusCode.UNAUTHORIZED_401 &&
+                    Oauth2PolicyV3.OAUTH2_INVALID_ACCESS_TOKEN_KEY.equals(result.key())
                 )
             );
     }
@@ -382,10 +374,9 @@ class Oauth2PolicyV3Test {
 
         verify(mockPolicychain)
             .failWith(
-                argThat(
-                    result ->
-                        result.statusCode() == HttpStatusCode.SERVICE_UNAVAILABLE_503 &&
-                        Oauth2PolicyV3.OAUTH2_SERVER_UNAVAILABLE_KEY.equals(result.key())
+                argThat(result ->
+                    result.statusCode() == HttpStatusCode.SERVICE_UNAVAILABLE_503 &&
+                    Oauth2PolicyV3.OAUTH2_SERVER_UNAVAILABLE_KEY.equals(result.key())
                 )
             );
     }
@@ -405,10 +396,9 @@ class Oauth2PolicyV3Test {
 
         verify(mockPolicychain)
             .failWith(
-                argThat(
-                    result ->
-                        result.statusCode() == HttpStatusCode.UNAUTHORIZED_401 &&
-                        Oauth2PolicyV3.OAUTH2_INVALID_SERVER_RESPONSE_KEY.equals(result.key())
+                argThat(result ->
+                    result.statusCode() == HttpStatusCode.UNAUTHORIZED_401 &&
+                    Oauth2PolicyV3.OAUTH2_INVALID_SERVER_RESPONSE_KEY.equals(result.key())
                 )
             );
     }
@@ -530,10 +520,9 @@ class Oauth2PolicyV3Test {
 
         verify(mockPolicychain)
             .failWith(
-                argThat(
-                    result ->
-                        result.statusCode() == HttpStatusCode.UNAUTHORIZED_401 &&
-                        Oauth2PolicyV3.OAUTH2_INSUFFICIENT_SCOPE_KEY.equals(result.key())
+                argThat(result ->
+                    result.statusCode() == HttpStatusCode.UNAUTHORIZED_401 &&
+                    Oauth2PolicyV3.OAUTH2_INSUFFICIENT_SCOPE_KEY.equals(result.key())
                 )
             );
     }
