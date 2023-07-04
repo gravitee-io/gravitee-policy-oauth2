@@ -39,10 +39,8 @@ import io.gravitee.gateway.api.service.SubscriptionService;
 import io.gravitee.gateway.reactive.api.policy.SecurityToken;
 import io.gravitee.plugin.resource.ResourcePlugin;
 import io.gravitee.policy.oauth2.configuration.OAuth2PolicyConfiguration;
-import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.Single;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.rxjava3.core.buffer.Buffer;
 import io.vertx.rxjava3.core.http.HttpClient;
 import io.vertx.rxjava3.core.http.HttpClientRequest;
 import io.vertx.rxjava3.core.http.HttpClientResponse;
@@ -60,16 +58,10 @@ import org.mockito.stubbing.OngoingStubbing;
  */
 @GatewayTest
 @DeployApi("/apis/oauth2.json")
-public class Oauth2PolicyIntegrationTest extends AbstractPolicyTest<Oauth2Policy, OAuth2PolicyConfiguration> {
+public class Oauth2PolicyV4EmulationEngineIntegrationTest extends AbstractPolicyTest<Oauth2Policy, OAuth2PolicyConfiguration> {
 
     public static final String API_ID = "my-api";
     public static final String PLAN_ID = "plan-id";
-
-    @Override
-    protected void configureGateway(GatewayConfigurationBuilder gatewayConfigurationBuilder) {
-        super.configureGateway(gatewayConfigurationBuilder);
-        gatewayConfigurationBuilder.set("api.jupiterMode.enabled", "true");
-    }
 
     @Override
     public void configureResources(Map<String, ResourcePlugin> resources) {
@@ -97,7 +89,6 @@ public class Oauth2PolicyIntegrationTest extends AbstractPolicyTest<Oauth2Policy
         }
 
         api.setPlans(Collections.singletonList(oauth2Plan));
-        api.setExecutionMode(ExecutionMode.JUPITER);
     }
 
     @Test
@@ -129,8 +120,8 @@ public class Oauth2PolicyIntegrationTest extends AbstractPolicyTest<Oauth2Policy
 
         Single<HttpClientResponse> httpClientResponse = client
             .rxRequest(HttpMethod.GET, "/test")
-            .flatMap(
-                request -> request.putHeader("Authorization", "Bearer " + DummyOAuth2Resource.TOKEN_SUCCESS_WITH_INVALID_PAYLOAD).rxSend()
+            .flatMap(request ->
+                request.putHeader("Authorization", "Bearer " + DummyOAuth2Resource.TOKEN_SUCCESS_WITH_INVALID_PAYLOAD).rxSend()
             );
 
         verifyNoInteractions(getBean(SubscriptionService.class));
@@ -144,8 +135,7 @@ public class Oauth2PolicyIntegrationTest extends AbstractPolicyTest<Oauth2Policy
 
         Single<HttpClientResponse> httpClientResponse = client
             .rxRequest(HttpMethod.GET, "/test")
-            .flatMap(
-                request -> request.putHeader("Authorization", "Bearer " + DummyOAuth2Resource.TOKEN_SUCCESS_WITHOUT_CLIENT_ID).rxSend()
+            .flatMap(request -> request.putHeader("Authorization", "Bearer " + DummyOAuth2Resource.TOKEN_SUCCESS_WITHOUT_CLIENT_ID).rxSend()
             );
 
         verifyNoInteractions(getBean(SubscriptionService.class));
@@ -193,21 +183,17 @@ public class Oauth2PolicyIntegrationTest extends AbstractPolicyTest<Oauth2Policy
         client
             .rxRequest(HttpMethod.GET, "/test")
             .flatMap(request -> request.putHeader("Authorization", "Bearer " + DummyOAuth2Resource.TOKEN_SUCCESS_WITH_CLIENT_ID).rxSend())
-            .flatMapPublisher(
-                response -> {
-                    assertThat(response.statusCode()).isEqualTo(200);
-                    return response.toFlowable();
-                }
-            )
+            .flatMapPublisher(response -> {
+                assertThat(response.statusCode()).isEqualTo(200);
+                return response.toFlowable();
+            })
             .test()
             .await()
             .assertComplete()
-            .assertValue(
-                body -> {
-                    assertThat(body.toString()).isEqualTo("response from backend");
-                    return true;
-                }
-            )
+            .assertValue(body -> {
+                assertThat(body.toString()).isEqualTo("response from backend");
+                return true;
+            })
             .assertNoErrors();
 
         wiremock.verify(1, getRequestedFor(urlPathEqualTo("/team")));
@@ -226,21 +212,17 @@ public class Oauth2PolicyIntegrationTest extends AbstractPolicyTest<Oauth2Policy
 
     private void assert401unauthorized(Single<HttpClientResponse> httpClientResponse) throws InterruptedException {
         httpClientResponse
-            .flatMapPublisher(
-                response -> {
-                    assertThat(response.statusCode()).isEqualTo(401);
-                    return response.body().toFlowable();
-                }
-            )
+            .flatMapPublisher(response -> {
+                assertThat(response.statusCode()).isEqualTo(401);
+                return response.body().toFlowable();
+            })
             .test()
             .await()
             .assertComplete()
-            .assertValue(
-                body -> {
-                    assertUnauthorizedResponseBody(body.toString());
-                    return true;
-                }
-            )
+            .assertValue(body -> {
+                assertUnauthorizedResponseBody(body.toString());
+                return true;
+            })
             .assertNoErrors();
 
         wiremock.verify(0, getRequestedFor(urlPathEqualTo("/team")));
@@ -255,10 +237,8 @@ public class Oauth2PolicyIntegrationTest extends AbstractPolicyTest<Oauth2Policy
     }
 
     private SecurityToken securityTokenMatcher(String clientId) {
-        return argThat(
-            securityToken ->
-                securityToken.getTokenType().equals(SecurityToken.TokenType.CLIENT_ID.name()) &&
-                securityToken.getTokenValue().equals(clientId)
+        return argThat(securityToken ->
+            securityToken.getTokenType().equals(SecurityToken.TokenType.CLIENT_ID.name()) && securityToken.getTokenValue().equals(clientId)
         );
     }
 }

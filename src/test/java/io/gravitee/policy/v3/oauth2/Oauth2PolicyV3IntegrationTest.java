@@ -15,35 +15,25 @@
  */
 package io.gravitee.policy.v3.oauth2;
 
+import static io.gravitee.definition.model.ExecutionMode.V3;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+import io.gravitee.apim.gateway.tests.sdk.annotations.GatewayTest;
 import io.gravitee.apim.gateway.tests.sdk.configuration.GatewayConfigurationBuilder;
 import io.gravitee.definition.model.Api;
 import io.gravitee.definition.model.ExecutionMode;
 import io.gravitee.gateway.api.service.Subscription;
 import io.gravitee.gateway.api.service.SubscriptionService;
-import io.gravitee.policy.oauth2.Oauth2PolicyIntegrationTest;
+import io.gravitee.policy.oauth2.Oauth2PolicyV4EmulationEngineIntegrationTest;
 import java.util.Optional;
-import org.junit.jupiter.api.Disabled;
 import org.mockito.stubbing.OngoingStubbing;
 
 /**
  * @author GraviteeSource Team
  */
-public class Oauth2PolicyV3IntegrationTest extends Oauth2PolicyIntegrationTest {
-
-    @Override
-    protected void configureGateway(GatewayConfigurationBuilder gatewayConfigurationBuilder) {
-        super.configureGateway(gatewayConfigurationBuilder);
-        gatewayConfigurationBuilder.set("api.jupiterMode.enabled", "false");
-    }
-
-    @Override
-    public void configureApi(Api api) {
-        super.configureApi(api);
-        api.setExecutionMode(ExecutionMode.V3);
-    }
+@GatewayTest(v2ExecutionMode = V3)
+public class Oauth2PolicyV3IntegrationTest extends Oauth2PolicyV4EmulationEngineIntegrationTest {
 
     /**
      * This overrides subscription search :

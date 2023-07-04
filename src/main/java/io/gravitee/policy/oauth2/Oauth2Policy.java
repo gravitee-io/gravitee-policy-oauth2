@@ -103,14 +103,12 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
 
         return extractAccessToken(ctx, true)
             .flatMap(token -> introspectAccessToken(ctx, token, oauth2Resource).toMaybe())
-            .flatMap(
-                introspectionResult -> {
-                    if (introspectionResult.hasClientId()) {
-                        return Maybe.just(SecurityToken.forClientId(introspectionResult.getClientId()));
-                    }
-                    return Maybe.empty();
+            .flatMap(introspectionResult -> {
+                if (introspectionResult.hasClientId()) {
+                    return Maybe.just(SecurityToken.forClientId(introspectionResult.getClientId()));
                 }
-            );
+                return Maybe.empty();
+            });
     }
 
     @Override
@@ -120,54 +118,44 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
 
     private Completable handleSecurity(final HttpExecutionContext ctx) {
         return Completable
-            .defer(
-                () -> {
-                    log.debug("Read access_token from request {}", ctx.request().id());
-                    final OAuth2Resource<?> oauth2Resource = getOauth2Resource(ctx);
+            .defer(() -> {
+                log.debug("Read access_token from request {}", ctx.request().id());
+                final OAuth2Resource<?> oauth2Resource = getOauth2Resource(ctx);
 
-                    if (oauth2Resource == null) {
-                        return ctx.interruptWith(
-                            new ExecutionFailure(UNAUTHORIZED_401)
-                                .key(OAUTH2_MISSING_SERVER_KEY)
-                                .message(NO_OAUTH_SERVER_CONFIGURED_MESSAGE)
-                        );
-                    }
+                if (oauth2Resource == null) {
+                    return ctx.interruptWith(
+                        new ExecutionFailure(UNAUTHORIZED_401).key(OAUTH2_MISSING_SERVER_KEY).message(NO_OAUTH_SERVER_CONFIGURED_MESSAGE)
+                    );
+                }
 
-                    return extractAccessToken(ctx, false)
-                        .switchIfEmpty(
-                            Maybe.defer(
-                                () ->
-                                    sendError(ctx, OAUTH2_MISSING_HEADER_KEY, "invalid_request", NO_AUTHORIZATION_HEADER_SUPPLIED_MESSAGE)
-                                        .toMaybe()
-                            )
+                return extractAccessToken(ctx, false)
+                    .switchIfEmpty(
+                        Maybe.defer(() ->
+                            sendError(ctx, OAUTH2_MISSING_HEADER_KEY, "invalid_request", NO_AUTHORIZATION_HEADER_SUPPLIED_MESSAGE).toMaybe()
                         )
-                        .flatMapCompletable(
-                            accessToken -> {
-                                if (accessToken.isBlank()) {
-                                    return sendError(
-                                        ctx,
-                                        OAUTH2_MISSING_ACCESS_TOKEN_KEY,
-                                        "invalid_request",
-                                        NO_AUTHORIZATION_HEADER_SUPPLIED_MESSAGE
-                                    );
-                                }
+                    )
+                    .flatMapCompletable(accessToken -> {
+                        if (accessToken.isBlank()) {
+                            return sendError(
+                                ctx,
+                                OAUTH2_MISSING_ACCESS_TOKEN_KEY,
+                                "invalid_request",
+                                NO_AUTHORIZATION_HEADER_SUPPLIED_MESSAGE
+                            );
+                        }
 
-                                // Set access_token in context
-                                ctx.setAttribute(CONTEXT_ATTRIBUTE_OAUTH_ACCESS_TOKEN, accessToken);
+                        // Set access_token in context
+                        ctx.setAttribute(CONTEXT_ATTRIBUTE_OAUTH_ACCESS_TOKEN, accessToken);
 
-                                // Introspect and validate access token
-                                return introspectAndValidateAccessToken(ctx, accessToken, oauth2Resource);
-                            }
-                        );
+                        // Introspect and validate access token
+                        return introspectAndValidateAccessToken(ctx, accessToken, oauth2Resource);
+                    });
+            })
+            .doOnTerminate(() -> {
+                if (!oAuth2PolicyConfiguration.isPropagateAuthHeader()) {
+                    ctx.request().headers().remove(HttpHeaderNames.AUTHORIZATION);
                 }
-            )
-            .doOnTerminate(
-                () -> {
-                    if (!oAuth2PolicyConfiguration.isPropagateAuthHeader()) {
-                        ctx.request().headers().remove(HttpHeaderNames.AUTHORIZATION);
-                    }
-                }
-            );
+            });
     }
 
     /**
@@ -180,20 +168,18 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
      */
     private Maybe<String> extractAccessToken(HttpExecutionContext ctx, boolean canUseCache) {
         return Maybe
-            .defer(
-                () -> {
-                    LazyJWT jwt = canUseCache ? ctx.getAttribute(CONTEXT_ATTRIBUTE_JWT) : null;
-                    if (jwt == null) {
-                        Optional<String> token = TokenExtractor.extract(ctx.request());
-                        if (token.isEmpty()) {
-                            return Maybe.empty();
-                        }
-                        jwt = new LazyJWT(token.get());
-                        ctx.setAttribute(CONTEXT_ATTRIBUTE_JWT, jwt);
+            .defer(() -> {
+                LazyJWT jwt = canUseCache ? ctx.getAttribute(CONTEXT_ATTRIBUTE_JWT) : null;
+                if (jwt == null) {
+                    Optional<String> token = TokenExtractor.extract(ctx.request());
+                    if (token.isEmpty()) {
+                        return Maybe.empty();
                     }
-                    return Maybe.just(jwt.getToken());
+                    jwt = new LazyJWT(token.get());
+                    ctx.setAttribute(CONTEXT_ATTRIBUTE_JWT, jwt);
                 }
-            )
+                return Maybe.just(jwt.getToken());
+            })
             .doOnSuccess(token -> ctx.setAttribute(CONTEXT_ATTRIBUTE_TOKEN, token));
     }
 
@@ -269,38 +255,35 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
         Single<OAuth2Response> oAuth2Response = Single.create(emitter -> oauth2Resource.introspect(accessToken, emitter::onSuccess));
         return oAuth2Response
             .map(TokenIntrospectionResult::new)
-            .doOnSuccess(
-                tokenIntrospectionResult ->
-                    fillTokenIntrospectionCache(accessToken, oauth2Resource, tokenIntrospectionCache, policyCache, tokenIntrospectionResult)
+            .doOnSuccess(tokenIntrospectionResult ->
+                fillTokenIntrospectionCache(accessToken, oauth2Resource, tokenIntrospectionCache, policyCache, tokenIntrospectionResult)
             );
     }
 
     private Completable introspectAndValidateAccessToken(HttpExecutionContext ctx, String accessToken, OAuth2Resource<?> oauth2Resource) {
         return introspectAccessToken(ctx, accessToken, oauth2Resource)
-            .flatMapCompletable(
-                introspectionResult -> {
-                    if (introspectionResult.isSuccess()) {
-                        return validateOAuth2Payload(ctx, introspectionResult, oauth2Resource);
-                    } else {
-                        ctx.response().headers().add(HttpHeaderNames.WWW_AUTHENTICATE, BEARER_AUTHORIZATION_TYPE + " realm=gravitee.io ");
+            .flatMapCompletable(introspectionResult -> {
+                if (introspectionResult.isSuccess()) {
+                    return validateOAuth2Payload(ctx, introspectionResult, oauth2Resource);
+                } else {
+                    ctx.response().headers().add(HttpHeaderNames.WWW_AUTHENTICATE, BEARER_AUTHORIZATION_TYPE + " realm=gravitee.io ");
 
-                        if (introspectionResult.getOauth2ResponseThrowable() == null) {
-                            return ctx.interruptWith(
-                                new ExecutionFailure(UNAUTHORIZED_401)
-                                    .key(OAUTH2_INVALID_ACCESS_TOKEN_KEY)
-                                    .message(introspectionResult.getOauth2ResponsePayload())
-                                    .contentType(MediaType.APPLICATION_JSON)
-                            );
-                        } else {
-                            return ctx.interruptWith(
-                                new ExecutionFailure(SERVICE_UNAVAILABLE_503)
-                                    .key(OAUTH2_SERVER_UNAVAILABLE_KEY)
-                                    .message(TEMPORARILY_UNAVAILABLE_MESSAGE)
-                            );
-                        }
+                    if (introspectionResult.getOauth2ResponseThrowable() == null) {
+                        return ctx.interruptWith(
+                            new ExecutionFailure(UNAUTHORIZED_401)
+                                .key(OAUTH2_INVALID_ACCESS_TOKEN_KEY)
+                                .message(introspectionResult.getOauth2ResponsePayload())
+                                .contentType(MediaType.APPLICATION_JSON)
+                        );
+                    } else {
+                        return ctx.interruptWith(
+                            new ExecutionFailure(SERVICE_UNAVAILABLE_503)
+                                .key(OAUTH2_SERVER_UNAVAILABLE_KEY)
+                                .message(TEMPORARILY_UNAVAILABLE_MESSAGE)
+                        );
                     }
                 }
-            );
+            });
     }
 
     /**

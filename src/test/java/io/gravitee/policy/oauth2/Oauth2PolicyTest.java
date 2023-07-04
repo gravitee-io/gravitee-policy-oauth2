@@ -224,12 +224,10 @@ class Oauth2PolicyTest {
         when(oAuth2Response.isSuccess()).thenReturn(false);
         when(oAuth2Response.getThrowable()).thenReturn(new RuntimeException(MOCK_INTROSPECT_EXCEPTION));
 
-        doAnswer(
-                i -> {
-                    i.<Handler<OAuth2Response>>getArgument(1).handle(oAuth2Response);
-                    return null;
-                }
-            )
+        doAnswer(i -> {
+                i.<Handler<OAuth2Response>>getArgument(1).handle(oAuth2Response);
+                return null;
+            })
             .when(oAuth2Resource)
             .introspect(eq(token), any(Handler.class));
 
@@ -395,13 +393,11 @@ class Oauth2PolicyTest {
         verify(ctx).setAttribute(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID, "my-client-id");
         verify(cache)
             .put(
-                argThat(
-                    e -> {
-                        assertEquals(token, e.key());
-                        assertEquals(payload, e.value());
-                        return true;
-                    }
-                )
+                argThat(e -> {
+                    assertEquals(token, e.key());
+                    assertEquals(payload, e.value());
+                    return true;
+                })
             );
     }
 
@@ -428,14 +424,12 @@ class Oauth2PolicyTest {
         verify(ctx).setAttribute(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID, "my-client-id");
         verify(cache)
             .put(
-                argThat(
-                    e -> {
-                        assertEquals(token, e.key());
-                        assertEquals(payload, e.value());
-                        assertTrue(e.timeToLive() > 0);
-                        return true;
-                    }
-                )
+                argThat(e -> {
+                    assertEquals(token, e.key());
+                    assertEquals(payload, e.value());
+                    assertTrue(e.timeToLive() > 0);
+                    return true;
+                })
             );
     }
 
@@ -510,10 +504,9 @@ class Oauth2PolicyTest {
         final TestObserver<SecurityToken> obs = cut.extractSecurityToken(ctx).test();
 
         obs.assertComplete().assertValueCount(1);
-        obs.assertValue(
-            securityToken ->
-                securityToken.getTokenType().equals(SecurityToken.TokenType.CLIENT_ID.name()) &&
-                securityToken.getTokenValue().equals("my-test-client-id")
+        obs.assertValue(securityToken ->
+            securityToken.getTokenType().equals(SecurityToken.TokenType.CLIENT_ID.name()) &&
+            securityToken.getTokenValue().equals("my-test-client-id")
         );
         verify(ctx).setAttribute(eq(CONTEXT_ATTRIBUTE_JWT), Mockito.<LazyJWT>argThat(jwt -> token.equals(jwt.getToken())));
     }
@@ -556,12 +549,10 @@ class Oauth2PolicyTest {
         lenient().when(oAuth2Response.isSuccess()).thenReturn(success);
         lenient().when(oAuth2Response.getPayload()).thenReturn(payload);
 
-        doAnswer(
-                i -> {
-                    i.<Handler<OAuth2Response>>getArgument(1).handle(oAuth2Response);
-                    return null;
-                }
-            )
+        doAnswer(i -> {
+                i.<Handler<OAuth2Response>>getArgument(1).handle(oAuth2Response);
+                return null;
+            })
             .when(oAuth2Resource)
             .introspect(eq(token), any(Handler.class));
     }
@@ -569,17 +560,15 @@ class Oauth2PolicyTest {
     private void verifyInterruptWith(int httpStatus, String message, String key, String contentType) {
         verify(ctx)
             .interruptWith(
-                argThat(
-                    failure -> {
-                        assertEquals(httpStatus, failure.statusCode());
-                        assertEquals(message, failure.message());
-                        assertEquals(key, failure.key());
-                        assertNull(failure.parameters());
-                        assertEquals(contentType, failure.contentType());
+                argThat(failure -> {
+                    assertEquals(httpStatus, failure.statusCode());
+                    assertEquals(message, failure.message());
+                    assertEquals(key, failure.key());
+                    assertNull(failure.parameters());
+                    assertEquals(contentType, failure.contentType());
 
-                        return true;
-                    }
-                )
+                    return true;
+                })
             );
     }
 
