@@ -1,3 +1,10 @@
+# [3.0.0-alpha.2](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/3.0.0-alpha.1...3.0.0-alpha.2) (2023-07-05)
+
+
+### Bug Fixes
+
+* simplify unauthorized message ([0358f05](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/0358f054ba8c83a3232669997d1293c873e2ceef))
+
 # [3.0.0-alpha.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/2.3.0...3.0.0-alpha.1) (2023-07-04)
 
 
