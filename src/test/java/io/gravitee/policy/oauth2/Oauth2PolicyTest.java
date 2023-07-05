@@ -289,6 +289,20 @@ class Oauth2PolicyTest {
     }
 
     @Test
+    void shouldCompleteWhenGoodIntrospectionWithClientIdUsingScpKey() throws IOException {
+        final String token = prepareToken();
+        prepareOauth2Resource();
+
+        prepareIntrospection(token, readResource("/io/gravitee/policy/oauth2/oauth2-response10.json"), true);
+
+        final TestObserver<Void> obs = cut.onRequest(ctx).test();
+        obs.assertComplete();
+
+        verify(ctx).setAttribute(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID, "my-client-id");
+        verify(ctx).setAttribute(ATTR_USER_ROLES, List.of("read", "write", "admin"));
+    }
+
+    @Test
     void shouldCompleteWithUser() throws IOException {
         final String user = "my-user";
         final String token = prepareToken();
