@@ -84,7 +84,9 @@ public class TokenIntrospectionResult {
     public List<String> extractScopes(String scopeSeparator) {
         if (hasValidPayload()) {
             JsonNode scopesNode = oAuth2ResponseJsonNode.path(OAUTH_PAYLOAD_SCOPE_NODE);
-            if (scopesNode.isMissingNode()) scopesNode = oAuth2ResponseJsonNode.path(OAUTH_PAYLOAD_SCOPE_NODE_LEGACY);
+            if (scopesNode.isMissingNode()) {
+                scopesNode = oAuth2ResponseJsonNode.path(OAUTH_PAYLOAD_SCOPE_NODE_LEGACY);
+            }
             List<String> scopes;
             if (scopesNode instanceof ArrayNode) {
                 Iterator<JsonNode> scopeIterator = scopesNode.elements();
