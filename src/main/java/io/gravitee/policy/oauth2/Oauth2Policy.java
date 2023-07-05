@@ -59,12 +59,6 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
     public static final String CONTEXT_ATTRIBUTE_TOKEN = CONTEXT_ATTRIBUTE_PREFIX + "token";
 
     public static final String ATTR_INTERNAL_TOKEN_INTROSPECTIONS = "token-introspection-cache";
-
-    protected static final String NO_OAUTH_SERVER_CONFIGURED_MESSAGE = "No OAuth authorization server has been configured";
-    protected static final String NO_AUTHORIZATION_HEADER_SUPPLIED_MESSAGE = "No OAuth authorization header was supplied";
-    protected static final String TEMPORARILY_UNAVAILABLE_MESSAGE = "temporarily_unavailable";
-    protected static final String INVALID_SERVER_RESPONSE_MESSAGE = "Invalid response from authorization server";
-    protected static final String INSUFFICIENT_SCOPES_MESSAGE = "The request requires higher privileges than provided by the access token.";
     private static final Logger log = LoggerFactory.getLogger(Oauth2Policy.class);
 
     public Oauth2Policy(OAuth2PolicyConfiguration oAuth2PolicyConfiguration) {
@@ -124,24 +118,15 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
 
                 if (oauth2Resource == null) {
                     return ctx.interruptWith(
-                        new ExecutionFailure(UNAUTHORIZED_401).key(OAUTH2_MISSING_SERVER_KEY).message(NO_OAUTH_SERVER_CONFIGURED_MESSAGE)
+                        new ExecutionFailure(UNAUTHORIZED_401).key(OAUTH2_MISSING_SERVER_KEY).message(OAUTH2_UNAUTHORIZED_MESSAGE)
                     );
                 }
 
                 return extractAccessToken(ctx, false)
-                    .switchIfEmpty(
-                        Maybe.defer(() ->
-                            sendError(ctx, OAUTH2_MISSING_HEADER_KEY, "invalid_request", NO_AUTHORIZATION_HEADER_SUPPLIED_MESSAGE).toMaybe()
-                        )
-                    )
+                    .switchIfEmpty(Maybe.defer(() -> sendError(ctx, OAUTH2_MISSING_HEADER_KEY).toMaybe()))
                     .flatMapCompletable(accessToken -> {
                         if (accessToken.isBlank()) {
-                            return sendError(
-                                ctx,
-                                OAUTH2_MISSING_ACCESS_TOKEN_KEY,
-                                "invalid_request",
-                                NO_AUTHORIZATION_HEADER_SUPPLIED_MESSAGE
-                            );
+                            return sendError(ctx, OAUTH2_MISSING_ACCESS_TOKEN_KEY);
                         }
 
                         // Set access_token in context
@@ -189,7 +174,7 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
         OAuth2Resource<?> oauth2Resource
     ) {
         if (!tokenIntrospectionResult.hasValidPayload()) {
-            return sendError(ctx, OAUTH2_INVALID_SERVER_RESPONSE_KEY, "server_error", INVALID_SERVER_RESPONSE_MESSAGE);
+            return sendError(ctx, OAUTH2_INVALID_SERVER_RESPONSE_KEY);
         }
 
         if (tokenIntrospectionResult.hasClientId()) {
@@ -208,7 +193,7 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
         // Check required scopes to access the resource
         if (oAuth2PolicyConfiguration.isCheckRequiredScopes()) {
             if (!hasRequiredScopes(scopes, oAuth2PolicyConfiguration.getRequiredScopes(), oAuth2PolicyConfiguration.isModeStrict())) {
-                return sendError(ctx, OAUTH2_INSUFFICIENT_SCOPE_KEY, "insufficient_scope", INSUFFICIENT_SCOPES_MESSAGE);
+                return sendError(ctx, OAUTH2_INSUFFICIENT_SCOPE_KEY);
             }
         }
 
@@ -270,16 +255,13 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
 
                     if (introspectionResult.getOauth2ResponseThrowable() == null) {
                         return ctx.interruptWith(
-                            new ExecutionFailure(UNAUTHORIZED_401)
-                                .key(OAUTH2_INVALID_ACCESS_TOKEN_KEY)
-                                .message(introspectionResult.getOauth2ResponsePayload())
-                                .contentType(MediaType.APPLICATION_JSON)
+                            new ExecutionFailure(UNAUTHORIZED_401).key(OAUTH2_INVALID_ACCESS_TOKEN_KEY).message(OAUTH2_UNAUTHORIZED_MESSAGE)
                         );
                     } else {
                         return ctx.interruptWith(
                             new ExecutionFailure(SERVICE_UNAVAILABLE_503)
                                 .key(OAUTH2_SERVER_UNAVAILABLE_KEY)
-                                .message(TEMPORARILY_UNAVAILABLE_MESSAGE)
+                                .message(OAUTH2_TEMPORARILY_UNAVAILABLE_MESSAGE)
                         );
                     }
                 }
@@ -294,20 +276,12 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
      *      error="invalid_token",
      *      error_description="The access token expired"
      */
-    private Completable sendError(HttpExecutionContext ctx, String responseKey, String error, String description) {
-        String headerValue =
-            BEARER_AUTHORIZATION_TYPE +
-            " realm=\"gravitee.io\"," +
-            " error=\"" +
-            error +
-            "\"," +
-            " error_description=\"" +
-            description +
-            "\"";
+    private Completable sendError(HttpExecutionContext ctx, String responseKey) {
+        String headerValue = BEARER_AUTHORIZATION_TYPE + " realm=\"gravitee.io\"";
 
         ctx.response().headers().add(HttpHeaderNames.WWW_AUTHENTICATE, headerValue);
 
-        return ctx.interruptWith(new ExecutionFailure(UNAUTHORIZED_401).key(responseKey).message(description));
+        return ctx.interruptWith(new ExecutionFailure(UNAUTHORIZED_401).key(responseKey).message(OAUTH2_UNAUTHORIZED_MESSAGE));
     }
 
     /**
