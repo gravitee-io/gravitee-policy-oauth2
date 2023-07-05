@@ -74,6 +74,9 @@ public class Oauth2PolicyV3 {
     public static final String OAUTH2_INSUFFICIENT_SCOPE_KEY = "OAUTH2_INSUFFICIENT_SCOPE";
     public static final String OAUTH2_SERVER_UNAVAILABLE_KEY = "OAUTH2_SERVER_UNAVAILABLE";
 
+    public static final String OAUTH2_UNAUTHORIZED_MESSAGE = "Unauthorized";
+    public static final String OAUTH2_TEMPORARILY_UNAVAILABLE_MESSAGE = "temporarily_unavailable";
+
     static final ObjectMapper MAPPER = new ObjectMapper();
 
     protected final OAuth2PolicyConfiguration oAuth2PolicyConfiguration;
@@ -96,11 +99,7 @@ public class Oauth2PolicyV3 {
 
         if (oauth2 == null) {
             policyChain.failWith(
-                PolicyResult.failure(
-                    OAUTH2_MISSING_SERVER_KEY,
-                    HttpStatusCode.UNAUTHORIZED_401,
-                    "No OAuth authorization server has been configured"
-                )
+                PolicyResult.failure(OAUTH2_MISSING_SERVER_KEY, HttpStatusCode.UNAUTHORIZED_401, OAUTH2_UNAUTHORIZED_MESSAGE)
             );
             return;
         }
@@ -112,13 +111,13 @@ public class Oauth2PolicyV3 {
             authorizationHeader.isEmpty() ||
             !StringUtils.startsWithIgnoreCase(authorizationHeader, BEARER_AUTHORIZATION_TYPE)
         ) {
-            sendError(OAUTH2_MISSING_HEADER_KEY, response, policyChain, "invalid_request", "No OAuth authorization header was supplied");
+            sendError(OAUTH2_MISSING_HEADER_KEY, response, policyChain);
             return;
         }
 
         String accessToken = authorizationHeader.substring(BEARER_AUTHORIZATION_TYPE.length()).trim();
         if (accessToken.isEmpty()) {
-            sendError(OAUTH2_MISSING_ACCESS_TOKEN_KEY, response, policyChain, "invalid_request", "No OAuth access token was supplied");
+            sendError(OAUTH2_MISSING_ACCESS_TOKEN_KEY, response, policyChain);
             return;
         }
 
@@ -158,23 +157,18 @@ public class Oauth2PolicyV3 {
             if (oauth2response.isSuccess()) {
                 handleSuccess(policyChain, request, response, executionContext, oauth2response.getPayload(), cacheResource);
             } else {
-                response.headers().add(HttpHeaderNames.WWW_AUTHENTICATE, BEARER_AUTHORIZATION_TYPE + " realm=gravitee.io ");
+                response.headers().add(HttpHeaderNames.WWW_AUTHENTICATE, BEARER_AUTHORIZATION_TYPE + " realm=gravitee.io");
 
                 if (oauth2response.getThrowable() == null) {
                     policyChain.failWith(
-                        PolicyResult.failure(
-                            OAUTH2_INVALID_ACCESS_TOKEN_KEY,
-                            HttpStatusCode.UNAUTHORIZED_401,
-                            oauth2response.getPayload(),
-                            MediaType.APPLICATION_JSON
-                        )
+                        PolicyResult.failure(OAUTH2_INVALID_ACCESS_TOKEN_KEY, HttpStatusCode.UNAUTHORIZED_401, OAUTH2_UNAUTHORIZED_MESSAGE)
                     );
                 } else {
                     policyChain.failWith(
                         PolicyResult.failure(
                             OAUTH2_SERVER_UNAVAILABLE_KEY,
                             HttpStatusCode.SERVICE_UNAVAILABLE_503,
-                            "temporarily_unavailable"
+                            OAUTH2_TEMPORARILY_UNAVAILABLE_MESSAGE
                         )
                     );
                 }
@@ -193,13 +187,7 @@ public class Oauth2PolicyV3 {
         JsonNode oauthResponseNode = readPayload(oauth2payload);
 
         if (oauthResponseNode == null) {
-            sendError(
-                OAUTH2_INVALID_SERVER_RESPONSE_KEY,
-                response,
-                policyChain,
-                "server_error",
-                "Invalid response from authorization server"
-            );
+            sendError(OAUTH2_INVALID_SERVER_RESPONSE_KEY, response, policyChain);
             return;
         }
 
@@ -227,13 +215,7 @@ public class Oauth2PolicyV3 {
         // Check required scopes to access the resource
         if (oAuth2PolicyConfiguration.isCheckRequiredScopes()) {
             if (!hasRequiredScopes(scopes, oAuth2PolicyConfiguration.getRequiredScopes(), oAuth2PolicyConfiguration.isModeStrict())) {
-                sendError(
-                    OAUTH2_INSUFFICIENT_SCOPE_KEY,
-                    response,
-                    policyChain,
-                    "insufficient_scope",
-                    "The request requires higher privileges than provided by the access token."
-                );
+                sendError(OAUTH2_INSUFFICIENT_SCOPE_KEY, response, policyChain);
                 return;
             }
         }
@@ -266,18 +248,10 @@ public class Oauth2PolicyV3 {
      *      error="invalid_token",
      *      error_description="The access token expired"
      */
-    private void sendError(String responseKey, Response response, PolicyChain policyChain, String error, String description) {
-        String headerValue =
-            BEARER_AUTHORIZATION_TYPE +
-            " realm=\"gravitee.io\"," +
-            " error=\"" +
-            error +
-            "\"," +
-            " error_description=\"" +
-            description +
-            "\"";
+    private void sendError(String responseKey, Response response, PolicyChain policyChain) {
+        String headerValue = BEARER_AUTHORIZATION_TYPE + " realm=\"gravitee.io\"";
         response.headers().add(HttpHeaderNames.WWW_AUTHENTICATE, headerValue);
-        policyChain.failWith(PolicyResult.failure(responseKey, HttpStatusCode.UNAUTHORIZED_401, null));
+        policyChain.failWith(PolicyResult.failure(responseKey, HttpStatusCode.UNAUTHORIZED_401, OAUTH2_UNAUTHORIZED_MESSAGE));
     }
 
     protected JsonNode readPayload(String oauthPayload) {
