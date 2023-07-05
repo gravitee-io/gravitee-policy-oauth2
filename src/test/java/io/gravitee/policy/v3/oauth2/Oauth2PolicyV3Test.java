@@ -288,6 +288,14 @@ class Oauth2PolicyV3Test {
     }
 
     @Test
+    void shouldValidScopes_stringOfScopes_scpKey() throws IOException {
+        JsonNode jsonNode = readJsonResource("/io/gravitee/policy/oauth2/oauth2-response10.json");
+        Collection<String> scopes = Oauth2PolicyV3.extractScopes(jsonNode, DEFAULT_OAUTH_SCOPE_SEPARATOR);
+        boolean valid = Oauth2PolicyV3.hasRequiredScopes(scopes, Collections.singletonList("read"), false);
+        Assertions.assertTrue(valid);
+    }
+
+    @Test
     void shouldValidScopes_stringOfScopes_moreOauthScope() throws IOException {
         JsonNode jsonNode = readJsonResource("/io/gravitee/policy/oauth2/oauth2-response08.json");
         Collection<String> scopes = Oauth2PolicyV3.extractScopes(jsonNode, DEFAULT_OAUTH_SCOPE_SEPARATOR);

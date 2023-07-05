@@ -57,7 +57,7 @@ public class Oauth2PolicyV3 {
 
     public static final String BEARER_AUTHORIZATION_TYPE = "Bearer";
     public static final String OAUTH_PAYLOAD_SCOPE_NODE = "scope";
-    private static final String OAUTH_PAYLOAD_SCOPE_NODE_LEGACY = "scp";
+    public static final String OAUTH_PAYLOAD_SCOPE_NODE_LEGACY = "scp";
     public static final String OAUTH_PAYLOAD_CLIENT_ID_NODE = "client_id";
     public static final String OAUTH_PAYLOAD_SUB_NODE = "sub";
     public static final String OAUTH_PAYLOAD_EXP = "exp";
@@ -292,7 +292,9 @@ public class Oauth2PolicyV3 {
 
     protected static List<String> extractScopes(JsonNode oauthResponseNode, String scopeSeparator) {
         JsonNode scopesNode = oauthResponseNode.path(OAUTH_PAYLOAD_SCOPE_NODE);
-        if (scopesNode.isMissingNode()) scopesNode = oauthResponseNode.path(OAUTH_PAYLOAD_SCOPE_NODE_LEGACY);
+        if (scopesNode.isMissingNode()) {
+            scopesNode = oauthResponseNode.path(OAUTH_PAYLOAD_SCOPE_NODE_LEGACY);
+        }
         List<String> scopes;
 
         if (scopesNode instanceof ArrayNode) {
