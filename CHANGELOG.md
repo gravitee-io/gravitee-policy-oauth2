@@ -1,3 +1,10 @@
+## [2.3.2](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/2.3.1...2.3.2) (2023-07-06)
+
+
+### Bug Fixes
+
+* bump `gravitee-parent` to 21.0.1 ([28a2620](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/28a2620eff22577f489bf384ff0b57826c7ec42b))
+
 ## [2.3.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/2.3.0...2.3.1) (2023-07-05)
 
 
