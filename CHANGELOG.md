@@ -1,3 +1,10 @@
+# [3.0.0-alpha.3](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/3.0.0-alpha.2...3.0.0-alpha.3) (2023-07-06)
+
+
+### Bug Fixes
+
+* properly handle token extraction ([c34a2ee](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/c34a2ee172060f4a5f10f59337536863722f407d))
+
 # [3.0.0-alpha.2](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/3.0.0-alpha.1...3.0.0-alpha.2) (2023-07-05)
 
 
