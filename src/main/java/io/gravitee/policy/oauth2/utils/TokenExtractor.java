@@ -44,12 +44,24 @@ public class TokenExtractor {
      *
      * If no access token has been found, an {@link Optional#empty()} is returned.
      *
-     * @param request the request to extract the JWT token from.
+     * @param request the request to extract the access token from.
      *
      * @return the access token as string, {@link Optional#empty()} if no token has been found.
      */
     public static Optional<String> extract(HttpRequest request) {
         return extractFromHeaders(request.headers()).or(() -> extractFromParameters(request.parameters()));
+    }
+
+    /**
+     * @deprecated kept for v3
+     *
+     * @param request the request to extract the JWT token from.
+     * @return the access token as string or <code>null</code> if no token has been found.
+     * @see #extract(HttpRequest)
+     */
+    @Deprecated
+    public static String extract(io.gravitee.gateway.api.Request request) {
+        return extractFromHeaders(request.headers()).or(() -> extractFromParameters(request.parameters())).orElse(null);
     }
 
     private static Optional<String> extractFromHeaders(HttpHeaders headers) {
@@ -67,7 +79,6 @@ public class TokenExtractor {
                 }
             }
         }
-
         return Optional.empty();
     }
 

@@ -46,6 +46,8 @@ public class DummyOAuth2Resource extends OAuth2Resource<DummyOAuth2Resource.Dumm
             response = new OAuth2Response(true, "{this _is _invalid json");
         } else if (TOKEN_FAIL.equals(accessToken)) {
             response = new OAuth2Response(false, null);
+        } else {
+            response = new OAuth2Response(false, null);
         }
 
         responseHandler.handle(response);
