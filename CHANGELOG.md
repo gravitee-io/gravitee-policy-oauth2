@@ -1,3 +1,12 @@
+## [2.0.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/2.0.0...2.0.1) (2023-07-06)
+
+
+### Bug Fixes
+
+* add support for `scp` node in Oauth2PolicyV3 ([d12bab6](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/d12bab63dd47905986e8a0dd302a0864e1929170))
+* add support for `scp` node in TokenIntrospectionResult ([cb482e7](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/cb482e71ce728e2e428c5ec2e9552363f362479d))
+* add test support for  node ([c78803d](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/c78803d9c5a059d1110f8409a5a39adacf53c704))
+
 # [2.0.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/1.23.0...2.0.0) (2022-12-09)
 
 
