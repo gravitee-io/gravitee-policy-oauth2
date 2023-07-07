@@ -20,7 +20,6 @@ import static org.mockito.Mockito.when;
 import io.gravitee.common.util.LinkedMultiValueMap;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.http.HttpHeaders;
-import io.gravitee.policy.jwt.utils.TokenExtractor;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -45,7 +44,7 @@ public class TokenExtractorTest {
         when(request.headers()).thenReturn(HttpHeaders.create());
         when(request.parameters()).thenReturn(new LinkedMultiValueMap<>());
 
-        String token = io.gravitee.policy.jwt.utils.TokenExtractor.extract(request);
+        String token = TokenExtractor.extract(request);
 
         Assertions.assertNull(token);
     }
@@ -57,16 +56,16 @@ public class TokenExtractorTest {
         HttpHeaders headers = HttpHeaders.create().set("Authorization", "Basic " + jwt);
         when(request.headers()).thenReturn(headers);
 
-        String token = io.gravitee.policy.jwt.utils.TokenExtractor.extract(request);
+        String token = TokenExtractor.extract(request);
         Assertions.assertNull(token);
     }
 
     @Test
     void should_extract_with_authorization_header_and_empty_bearer() {
-        HttpHeaders headers = HttpHeaders.create().set("Authorization", io.gravitee.policy.jwt.utils.TokenExtractor.BEARER);
+        HttpHeaders headers = HttpHeaders.create().set("Authorization", TokenExtractor.BEARER);
         when(request.headers()).thenReturn(headers);
 
-        String token = io.gravitee.policy.jwt.utils.TokenExtractor.extract(request);
+        String token = TokenExtractor.extract(request);
         Assertions.assertNotNull(token);
         Assertions.assertEquals("", token);
     }
@@ -75,10 +74,10 @@ public class TokenExtractorTest {
     void should_extract_with_authorization_header_and_bearer() {
         String jwt = "dummy-token";
 
-        HttpHeaders headers = HttpHeaders.create().set("Authorization", io.gravitee.policy.jwt.utils.TokenExtractor.BEARER + ' ' + jwt);
+        HttpHeaders headers = HttpHeaders.create().set("Authorization", TokenExtractor.BEARER + ' ' + jwt);
         when(request.headers()).thenReturn(headers);
 
-        String token = io.gravitee.policy.jwt.utils.TokenExtractor.extract(request);
+        String token = TokenExtractor.extract(request);
 
         Assertions.assertNotNull(token);
         Assertions.assertEquals(jwt, token);
@@ -91,7 +90,7 @@ public class TokenExtractorTest {
         HttpHeaders headers = HttpHeaders.create().set("Authorization", "bearer " + jwt);
         when(request.headers()).thenReturn(headers);
 
-        String token = io.gravitee.policy.jwt.utils.TokenExtractor.extract(request);
+        String token = TokenExtractor.extract(request);
 
         Assertions.assertNotNull(token);
         Assertions.assertEquals(jwt, token);
@@ -104,7 +103,7 @@ public class TokenExtractorTest {
         when(request.headers()).thenReturn(HttpHeaders.create());
 
         LinkedMultiValueMap<String, String> parameters = new LinkedMultiValueMap<>();
-        parameters.add(io.gravitee.policy.jwt.utils.TokenExtractor.ACCESS_TOKEN, jwt);
+        parameters.add(TokenExtractor.ACCESS_TOKEN, jwt);
         when(request.parameters()).thenReturn(parameters);
 
         String token = TokenExtractor.extract(request);
@@ -118,7 +117,7 @@ public class TokenExtractorTest {
         when(request.headers()).thenReturn(HttpHeaders.create());
 
         LinkedMultiValueMap<String, String> parameters = new LinkedMultiValueMap<>();
-        parameters.add(io.gravitee.policy.jwt.utils.TokenExtractor.ACCESS_TOKEN, "");
+        parameters.add(TokenExtractor.ACCESS_TOKEN, "");
         when(request.parameters()).thenReturn(parameters);
 
         String token = TokenExtractor.extract(request);
