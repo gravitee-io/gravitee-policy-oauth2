@@ -1,3 +1,10 @@
+# [3.0.0-alpha.4](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/3.0.0-alpha.3...3.0.0-alpha.4) (2023-07-07)
+
+
+### Bug Fixes
+
+* bump gravitee-parent to fix release on Maven Central ([457b84d](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/457b84d1e5bf94a347e435c11586ee3a83903af4))
+
 # [3.0.0-alpha.3](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/3.0.0-alpha.2...3.0.0-alpha.3) (2023-07-06)
 
 
