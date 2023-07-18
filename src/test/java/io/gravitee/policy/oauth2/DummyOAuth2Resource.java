@@ -55,5 +55,5 @@ public class DummyOAuth2Resource extends OAuth2Resource<DummyOAuth2Resource.Dumm
     @Override
     public void userInfo(String accessToken, Handler<UserInfoResponse> responseHandler) {}
 
-    public class DummyOAuth2ResourceConfiguration implements ResourceConfiguration {}
+    public static class DummyOAuth2ResourceConfiguration implements ResourceConfiguration {}
 }
