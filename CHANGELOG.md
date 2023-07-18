@@ -1,3 +1,24 @@
+# [3.0.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/2.3.2...3.0.0) (2023-07-18)
+
+
+### Bug Fixes
+
+* bump dependencies versions ([1312b09](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/1312b09e067e0be6542ea956f8f67e9d3b10c4ce))
+* bump gravitee-parent to fix release on Maven Central ([457b84d](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/457b84d1e5bf94a347e435c11586ee3a83903af4))
+* properly handle token extraction ([c34a2ee](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/c34a2ee172060f4a5f10f59337536863722f407d))
+* simplify unauthorized message ([0358f05](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/0358f054ba8c83a3232669997d1293c873e2ceef))
+
+
+### chore
+
+* **deps:** update gravitee-parent ([18402bb](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/18402bb6b261e2d294b2676f31313fc494542b35))
+
+
+### BREAKING CHANGES
+
+* **deps:** require Java17
+* use apim version 4
+
 ## [2.3.2](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/2.3.1...2.3.2) (2023-07-06)
 
 
