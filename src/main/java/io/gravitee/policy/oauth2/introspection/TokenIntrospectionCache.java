@@ -23,13 +23,12 @@ import java.util.Optional;
 
 /**
  * Cache for token introspections.
- *
  * It caches token introspections results in request context, to avoid doing twice the same introspection.
  * Cache key is : introspected accessToken + oauth2 resource used for introspection.
  */
 public class TokenIntrospectionCache {
 
-    private Map<Integer, TokenIntrospectionResult> cache;
+    private final Map<Integer, TokenIntrospectionResult> cache;
 
     public TokenIntrospectionCache() {
         cache = new HashMap<>();

@@ -15,7 +15,10 @@
  */
 package io.gravitee.policy.oauth2;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.ok;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.gravitee.policy.oauth2.DummyOAuth2Resource.CLIENT_ID;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,10 +32,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.gravitee.apim.gateway.tests.sdk.AbstractPolicyTest;
 import io.gravitee.apim.gateway.tests.sdk.annotations.DeployApi;
 import io.gravitee.apim.gateway.tests.sdk.annotations.GatewayTest;
-import io.gravitee.apim.gateway.tests.sdk.configuration.GatewayConfigurationBuilder;
 import io.gravitee.apim.gateway.tests.sdk.resource.ResourceBuilder;
 import io.gravitee.definition.model.Api;
-import io.gravitee.definition.model.ExecutionMode;
 import io.gravitee.definition.model.Plan;
 import io.gravitee.gateway.api.service.Subscription;
 import io.gravitee.gateway.api.service.SubscriptionService;
@@ -203,7 +204,7 @@ public class Oauth2PolicyV4EmulationEngineIntegrationTest extends AbstractPolicy
             .await()
             .assertComplete()
             .assertValue(body -> {
-                assertThat(body.toString()).isEqualTo("response from backend");
+                assertThat(body).hasToString("response from backend");
                 return true;
             })
             .assertNoErrors();
