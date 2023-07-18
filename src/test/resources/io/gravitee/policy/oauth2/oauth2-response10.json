@@ -1,4 +1,4 @@
 {
-  "client_id": "my-client-id",
-  "scp": "read write admin"
+    "client_id": "my-client-id",
+    "scp": "read write admin"
 }

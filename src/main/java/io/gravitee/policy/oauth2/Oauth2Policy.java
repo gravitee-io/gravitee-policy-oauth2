@@ -1,11 +1,11 @@
-/**
- * Copyright (C) 2015 The Gravitee team (http://gravitee.io)
+/*
+ * Copyright © 2015 The Gravitee team (http://gravitee.io)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *         http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,7 +20,6 @@ import static io.gravitee.common.http.HttpStatusCode.UNAUTHORIZED_401;
 import static io.gravitee.gateway.api.ExecutionContext.ATTR_USER;
 import static io.gravitee.gateway.api.ExecutionContext.ATTR_USER_ROLES;
 
-import io.gravitee.common.http.MediaType;
 import io.gravitee.common.security.jwt.LazyJWT;
 import io.gravitee.gateway.api.http.HttpHeaderNames;
 import io.gravitee.gateway.reactive.api.ExecutionFailure;
@@ -59,12 +58,6 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
     public static final String CONTEXT_ATTRIBUTE_TOKEN = CONTEXT_ATTRIBUTE_PREFIX + "token";
 
     public static final String ATTR_INTERNAL_TOKEN_INTROSPECTIONS = "token-introspection-cache";
-
-    protected static final String NO_OAUTH_SERVER_CONFIGURED_MESSAGE = "No OAuth authorization server has been configured";
-    protected static final String NO_AUTHORIZATION_HEADER_SUPPLIED_MESSAGE = "No OAuth authorization header was supplied";
-    protected static final String TEMPORARILY_UNAVAILABLE_MESSAGE = "temporarily_unavailable";
-    protected static final String INVALID_SERVER_RESPONSE_MESSAGE = "Invalid response from authorization server";
-    protected static final String INSUFFICIENT_SCOPES_MESSAGE = "The request requires higher privileges than provided by the access token.";
     private static final Logger log = LoggerFactory.getLogger(Oauth2Policy.class);
 
     public Oauth2Policy(OAuth2PolicyConfiguration oAuth2PolicyConfiguration) {
@@ -103,14 +96,12 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
 
         return extractAccessToken(ctx, true)
             .flatMap(token -> introspectAccessToken(ctx, token, oauth2Resource).toMaybe())
-            .flatMap(
-                introspectionResult -> {
-                    if (introspectionResult.hasClientId()) {
-                        return Maybe.just(SecurityToken.forClientId(introspectionResult.getClientId()));
-                    }
-                    return Maybe.empty();
+            .flatMap(introspectionResult -> {
+                if (introspectionResult.hasClientId()) {
+                    return Maybe.just(SecurityToken.forClientId(introspectionResult.getClientId()));
                 }
-            );
+                return Maybe.just(SecurityToken.invalid(SecurityToken.TokenType.CLIENT_ID));
+            });
     }
 
     @Override
@@ -120,54 +111,35 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
 
     private Completable handleSecurity(final HttpExecutionContext ctx) {
         return Completable
-            .defer(
-                () -> {
-                    log.debug("Read access_token from request {}", ctx.request().id());
-                    final OAuth2Resource<?> oauth2Resource = getOauth2Resource(ctx);
+            .defer(() -> {
+                log.debug("Read access_token from request {}", ctx.request().id());
+                final OAuth2Resource<?> oauth2Resource = getOauth2Resource(ctx);
 
-                    if (oauth2Resource == null) {
-                        return ctx.interruptWith(
-                            new ExecutionFailure(UNAUTHORIZED_401)
-                                .key(OAUTH2_MISSING_SERVER_KEY)
-                                .message(NO_OAUTH_SERVER_CONFIGURED_MESSAGE)
-                        );
-                    }
-
-                    return extractAccessToken(ctx, false)
-                        .switchIfEmpty(
-                            Maybe.defer(
-                                () ->
-                                    sendError(ctx, OAUTH2_MISSING_HEADER_KEY, "invalid_request", NO_AUTHORIZATION_HEADER_SUPPLIED_MESSAGE)
-                                        .toMaybe()
-                            )
-                        )
-                        .flatMapCompletable(
-                            accessToken -> {
-                                if (accessToken.isBlank()) {
-                                    return sendError(
-                                        ctx,
-                                        OAUTH2_MISSING_ACCESS_TOKEN_KEY,
-                                        "invalid_request",
-                                        NO_AUTHORIZATION_HEADER_SUPPLIED_MESSAGE
-                                    );
-                                }
-
-                                // Set access_token in context
-                                ctx.setAttribute(CONTEXT_ATTRIBUTE_OAUTH_ACCESS_TOKEN, accessToken);
-
-                                // Introspect and validate access token
-                                return introspectAndValidateAccessToken(ctx, accessToken, oauth2Resource);
-                            }
-                        );
+                if (oauth2Resource == null) {
+                    return ctx.interruptWith(
+                        new ExecutionFailure(UNAUTHORIZED_401).key(OAUTH2_MISSING_SERVER_KEY).message(OAUTH2_UNAUTHORIZED_MESSAGE)
+                    );
                 }
-            )
-            .doOnTerminate(
-                () -> {
-                    if (!oAuth2PolicyConfiguration.isPropagateAuthHeader()) {
-                        ctx.request().headers().remove(HttpHeaderNames.AUTHORIZATION);
-                    }
+
+                return extractAccessToken(ctx, false)
+                    .switchIfEmpty(Maybe.defer(() -> sendError(ctx, OAUTH2_MISSING_HEADER_KEY).toMaybe()))
+                    .flatMapCompletable(accessToken -> {
+                        if (accessToken.isBlank()) {
+                            return sendError(ctx, OAUTH2_MISSING_ACCESS_TOKEN_KEY);
+                        }
+
+                        // Set access_token in context
+                        ctx.setAttribute(CONTEXT_ATTRIBUTE_OAUTH_ACCESS_TOKEN, accessToken);
+
+                        // Introspect and validate access token
+                        return introspectAndValidateAccessToken(ctx, accessToken, oauth2Resource);
+                    });
+            })
+            .doOnTerminate(() -> {
+                if (!oAuth2PolicyConfiguration.isPropagateAuthHeader()) {
+                    ctx.request().headers().remove(HttpHeaderNames.AUTHORIZATION);
                 }
-            );
+            });
     }
 
     /**
@@ -180,20 +152,18 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
      */
     private Maybe<String> extractAccessToken(HttpExecutionContext ctx, boolean canUseCache) {
         return Maybe
-            .defer(
-                () -> {
-                    LazyJWT jwt = canUseCache ? ctx.getAttribute(CONTEXT_ATTRIBUTE_JWT) : null;
-                    if (jwt == null) {
-                        Optional<String> token = TokenExtractor.extract(ctx.request());
-                        if (token.isEmpty()) {
-                            return Maybe.empty();
-                        }
-                        jwt = new LazyJWT(token.get());
-                        ctx.setAttribute(CONTEXT_ATTRIBUTE_JWT, jwt);
+            .defer(() -> {
+                LazyJWT jwt = canUseCache ? ctx.getAttribute(CONTEXT_ATTRIBUTE_JWT) : null;
+                if (jwt == null) {
+                    Optional<String> token = TokenExtractor.extract(ctx.request());
+                    if (token.isEmpty()) {
+                        return Maybe.empty();
                     }
-                    return Maybe.just(jwt.getToken());
+                    jwt = new LazyJWT(token.get());
+                    ctx.setAttribute(CONTEXT_ATTRIBUTE_JWT, jwt);
                 }
-            )
+                return Maybe.just(jwt.getToken());
+            })
             .doOnSuccess(token -> ctx.setAttribute(CONTEXT_ATTRIBUTE_TOKEN, token));
     }
 
@@ -203,7 +173,7 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
         OAuth2Resource<?> oauth2Resource
     ) {
         if (!tokenIntrospectionResult.hasValidPayload()) {
-            return sendError(ctx, OAUTH2_INVALID_SERVER_RESPONSE_KEY, "server_error", INVALID_SERVER_RESPONSE_MESSAGE);
+            return sendError(ctx, OAUTH2_INVALID_SERVER_RESPONSE_KEY);
         }
 
         if (tokenIntrospectionResult.hasClientId()) {
@@ -222,7 +192,7 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
         // Check required scopes to access the resource
         if (oAuth2PolicyConfiguration.isCheckRequiredScopes()) {
             if (!hasRequiredScopes(scopes, oAuth2PolicyConfiguration.getRequiredScopes(), oAuth2PolicyConfiguration.isModeStrict())) {
-                return sendError(ctx, OAUTH2_INSUFFICIENT_SCOPE_KEY, "insufficient_scope", INSUFFICIENT_SCOPES_MESSAGE);
+                return sendError(ctx, OAUTH2_INSUFFICIENT_SCOPE_KEY);
             }
         }
 
@@ -269,38 +239,32 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
         Single<OAuth2Response> oAuth2Response = Single.create(emitter -> oauth2Resource.introspect(accessToken, emitter::onSuccess));
         return oAuth2Response
             .map(TokenIntrospectionResult::new)
-            .doOnSuccess(
-                tokenIntrospectionResult ->
-                    fillTokenIntrospectionCache(accessToken, oauth2Resource, tokenIntrospectionCache, policyCache, tokenIntrospectionResult)
+            .doOnSuccess(tokenIntrospectionResult ->
+                fillTokenIntrospectionCache(accessToken, oauth2Resource, tokenIntrospectionCache, policyCache, tokenIntrospectionResult)
             );
     }
 
     private Completable introspectAndValidateAccessToken(HttpExecutionContext ctx, String accessToken, OAuth2Resource<?> oauth2Resource) {
         return introspectAccessToken(ctx, accessToken, oauth2Resource)
-            .flatMapCompletable(
-                introspectionResult -> {
-                    if (introspectionResult.isSuccess()) {
-                        return validateOAuth2Payload(ctx, introspectionResult, oauth2Resource);
-                    } else {
-                        ctx.response().headers().add(HttpHeaderNames.WWW_AUTHENTICATE, BEARER_AUTHORIZATION_TYPE + " realm=gravitee.io ");
+            .flatMapCompletable(introspectionResult -> {
+                if (introspectionResult.isSuccess()) {
+                    return validateOAuth2Payload(ctx, introspectionResult, oauth2Resource);
+                } else {
+                    ctx.response().headers().add(HttpHeaderNames.WWW_AUTHENTICATE, BEARER_AUTHORIZATION_TYPE + " realm=gravitee.io ");
 
-                        if (introspectionResult.getOauth2ResponseThrowable() == null) {
-                            return ctx.interruptWith(
-                                new ExecutionFailure(UNAUTHORIZED_401)
-                                    .key(OAUTH2_INVALID_ACCESS_TOKEN_KEY)
-                                    .message(introspectionResult.getOauth2ResponsePayload())
-                                    .contentType(MediaType.APPLICATION_JSON)
-                            );
-                        } else {
-                            return ctx.interruptWith(
-                                new ExecutionFailure(SERVICE_UNAVAILABLE_503)
-                                    .key(OAUTH2_SERVER_UNAVAILABLE_KEY)
-                                    .message(TEMPORARILY_UNAVAILABLE_MESSAGE)
-                            );
-                        }
+                    if (introspectionResult.getOauth2ResponseThrowable() == null) {
+                        return ctx.interruptWith(
+                            new ExecutionFailure(UNAUTHORIZED_401).key(OAUTH2_INVALID_ACCESS_TOKEN_KEY).message(OAUTH2_UNAUTHORIZED_MESSAGE)
+                        );
+                    } else {
+                        return ctx.interruptWith(
+                            new ExecutionFailure(SERVICE_UNAVAILABLE_503)
+                                .key(OAUTH2_SERVER_UNAVAILABLE_KEY)
+                                .message(OAUTH2_TEMPORARILY_UNAVAILABLE_MESSAGE)
+                        );
                     }
                 }
-            );
+            });
     }
 
     /**
@@ -311,20 +275,12 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
      *      error="invalid_token",
      *      error_description="The access token expired"
      */
-    private Completable sendError(HttpExecutionContext ctx, String responseKey, String error, String description) {
-        String headerValue =
-            BEARER_AUTHORIZATION_TYPE +
-            " realm=\"gravitee.io\"," +
-            " error=\"" +
-            error +
-            "\"," +
-            " error_description=\"" +
-            description +
-            "\"";
+    private Completable sendError(HttpExecutionContext ctx, String responseKey) {
+        String headerValue = BEARER_AUTHORIZATION_TYPE + " realm=\"gravitee.io\"";
 
         ctx.response().headers().add(HttpHeaderNames.WWW_AUTHENTICATE, headerValue);
 
-        return ctx.interruptWith(new ExecutionFailure(UNAUTHORIZED_401).key(responseKey).message(description));
+        return ctx.interruptWith(new ExecutionFailure(UNAUTHORIZED_401).key(responseKey).message(OAUTH2_UNAUTHORIZED_MESSAGE));
     }
 
     /**

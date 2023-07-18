@@ -1,11 +1,11 @@
-/**
- * Copyright (C) 2015 The Gravitee team (http://gravitee.io)
+/*
+ * Copyright © 2015 The Gravitee team (http://gravitee.io)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *         http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -44,12 +44,24 @@ public class TokenExtractor {
      *
      * If no access token has been found, an {@link Optional#empty()} is returned.
      *
-     * @param request the request to extract the JWT token from.
+     * @param request the request to extract the access token from.
      *
      * @return the access token as string, {@link Optional#empty()} if no token has been found.
      */
     public static Optional<String> extract(HttpRequest request) {
         return extractFromHeaders(request.headers()).or(() -> extractFromParameters(request.parameters()));
+    }
+
+    /**
+     * @deprecated kept for v3
+     *
+     * @param request the request to extract the JWT token from.
+     * @return the access token as string or <code>null</code> if no token has been found.
+     * @see #extract(HttpRequest)
+     */
+    @Deprecated
+    public static String extract(io.gravitee.gateway.api.Request request) {
+        return extractFromHeaders(request.headers()).or(() -> extractFromParameters(request.parameters())).orElse(null);
     }
 
     private static Optional<String> extractFromHeaders(HttpHeaders headers) {
@@ -67,7 +79,6 @@ public class TokenExtractor {
                 }
             }
         }
-
         return Optional.empty();
     }
 

@@ -1,11 +1,11 @@
-/**
- * Copyright (C) 2015 The Gravitee team (http://gravitee.io)
+/*
+ * Copyright © 2015 The Gravitee team (http://gravitee.io)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *         http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,9 +18,30 @@ package io.gravitee.policy.oauth2;
 import static io.gravitee.gateway.api.ExecutionContext.ATTR_USER;
 import static io.gravitee.gateway.api.ExecutionContext.ATTR_USER_ROLES;
 import static io.gravitee.gateway.api.http.HttpHeaderNames.AUTHORIZATION;
-import static io.gravitee.policy.oauth2.Oauth2Policy.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static io.gravitee.policy.oauth2.Oauth2Policy.CONTEXT_ATTRIBUTE_JWT;
+import static io.gravitee.policy.oauth2.Oauth2Policy.CONTEXT_ATTRIBUTE_OAUTH_ACCESS_TOKEN;
+import static io.gravitee.policy.oauth2.Oauth2Policy.CONTEXT_ATTRIBUTE_OAUTH_PAYLOAD;
+import static io.gravitee.policy.oauth2.Oauth2Policy.OAUTH2_INSUFFICIENT_SCOPE_KEY;
+import static io.gravitee.policy.oauth2.Oauth2Policy.OAUTH2_INVALID_ACCESS_TOKEN_KEY;
+import static io.gravitee.policy.oauth2.Oauth2Policy.OAUTH2_INVALID_SERVER_RESPONSE_KEY;
+import static io.gravitee.policy.oauth2.Oauth2Policy.OAUTH2_MISSING_ACCESS_TOKEN_KEY;
+import static io.gravitee.policy.oauth2.Oauth2Policy.OAUTH2_MISSING_HEADER_KEY;
+import static io.gravitee.policy.oauth2.Oauth2Policy.OAUTH2_MISSING_SERVER_KEY;
+import static io.gravitee.policy.oauth2.Oauth2Policy.OAUTH2_SERVER_UNAVAILABLE_KEY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.argThat;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -137,7 +158,7 @@ class Oauth2PolicyTest {
         final TestObserver<Void> obs = cut.onRequest(ctx).test();
         obs.assertError(Throwable.class);
 
-        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, NO_OAUTH_SERVER_CONFIGURED_MESSAGE, OAUTH2_MISSING_SERVER_KEY, null);
+        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, "Unauthorized", OAUTH2_MISSING_SERVER_KEY);
     }
 
     @Test
@@ -148,7 +169,7 @@ class Oauth2PolicyTest {
         obs.assertError(Throwable.class);
 
         verify(responseHeaders).add(eq(HttpHeaderNames.WWW_AUTHENTICATE), anyString());
-        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, NO_AUTHORIZATION_HEADER_SUPPLIED_MESSAGE, OAUTH2_MISSING_HEADER_KEY, null);
+        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, OAUTH2_MISSING_HEADER_KEY, null);
     }
 
     @Test
@@ -160,7 +181,7 @@ class Oauth2PolicyTest {
         obs.assertError(Throwable.class);
 
         verify(responseHeaders).add(eq(HttpHeaderNames.WWW_AUTHENTICATE), anyString());
-        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, NO_AUTHORIZATION_HEADER_SUPPLIED_MESSAGE, OAUTH2_MISSING_HEADER_KEY, null);
+        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, OAUTH2_MISSING_HEADER_KEY, null);
     }
 
     @Test
@@ -172,12 +193,7 @@ class Oauth2PolicyTest {
         obs.assertError(Throwable.class);
 
         verify(responseHeaders).add(eq(HttpHeaderNames.WWW_AUTHENTICATE), anyString());
-        verifyInterruptWith(
-            HttpStatusCode.UNAUTHORIZED_401,
-            NO_AUTHORIZATION_HEADER_SUPPLIED_MESSAGE,
-            OAUTH2_MISSING_ACCESS_TOKEN_KEY,
-            null
-        );
+        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, OAUTH2_MISSING_ACCESS_TOKEN_KEY, null);
     }
 
     @Test
@@ -210,7 +226,7 @@ class Oauth2PolicyTest {
         verify(ctx, never()).setAttribute(eq(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID), anyString());
         verify(responseHeaders).add(eq(HttpHeaderNames.WWW_AUTHENTICATE), anyString());
 
-        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, payload, OAUTH2_INVALID_ACCESS_TOKEN_KEY, "application/json");
+        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, "Unauthorized", OAUTH2_INVALID_ACCESS_TOKEN_KEY);
     }
 
     @Test
@@ -224,12 +240,10 @@ class Oauth2PolicyTest {
         when(oAuth2Response.isSuccess()).thenReturn(false);
         when(oAuth2Response.getThrowable()).thenReturn(new RuntimeException(MOCK_INTROSPECT_EXCEPTION));
 
-        doAnswer(
-                i -> {
-                    i.<Handler<OAuth2Response>>getArgument(1).handle(oAuth2Response);
-                    return null;
-                }
-            )
+        doAnswer(i -> {
+                i.<Handler<OAuth2Response>>getArgument(1).handle(oAuth2Response);
+                return null;
+            })
             .when(oAuth2Resource)
             .introspect(eq(token), any(Handler.class));
 
@@ -239,7 +253,7 @@ class Oauth2PolicyTest {
         verify(ctx, never()).setAttribute(eq(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID), anyString());
         verify(responseHeaders).add(eq(HttpHeaderNames.WWW_AUTHENTICATE), anyString());
 
-        verifyInterruptWith(HttpStatusCode.SERVICE_UNAVAILABLE_503, TEMPORARILY_UNAVAILABLE_MESSAGE, OAUTH2_SERVER_UNAVAILABLE_KEY, null);
+        verifyInterruptWith(HttpStatusCode.SERVICE_UNAVAILABLE_503, "temporarily_unavailable", OAUTH2_SERVER_UNAVAILABLE_KEY);
     }
 
     @Test
@@ -257,7 +271,7 @@ class Oauth2PolicyTest {
         verify(ctx, never()).setAttribute(eq(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID), anyString());
         verify(responseHeaders).add(eq(HttpHeaderNames.WWW_AUTHENTICATE), anyString());
 
-        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, INVALID_SERVER_RESPONSE_MESSAGE, OAUTH2_INVALID_SERVER_RESPONSE_KEY, null);
+        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, "Unauthorized", OAUTH2_INVALID_SERVER_RESPONSE_KEY);
     }
 
     @Test
@@ -373,7 +387,7 @@ class Oauth2PolicyTest {
         verify(ctx).setAttribute(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID, "my-client-id");
         verify(ctx).setAttribute(ATTR_USER_ROLES, List.of("read", "write", "admin"));
 
-        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, INSUFFICIENT_SCOPES_MESSAGE, OAUTH2_INSUFFICIENT_SCOPE_KEY, null);
+        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, "Unauthorized", OAUTH2_INSUFFICIENT_SCOPE_KEY);
     }
 
     @Test
@@ -409,13 +423,11 @@ class Oauth2PolicyTest {
         verify(ctx).setAttribute(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID, "my-client-id");
         verify(cache)
             .put(
-                argThat(
-                    e -> {
-                        assertEquals(token, e.key());
-                        assertEquals(payload, e.value());
-                        return true;
-                    }
-                )
+                argThat(e -> {
+                    assertEquals(token, e.key());
+                    assertEquals(payload, e.value());
+                    return true;
+                })
             );
     }
 
@@ -442,14 +454,12 @@ class Oauth2PolicyTest {
         verify(ctx).setAttribute(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID, "my-client-id");
         verify(cache)
             .put(
-                argThat(
-                    e -> {
-                        assertEquals(token, e.key());
-                        assertEquals(payload, e.value());
-                        assertTrue(e.timeToLive() > 0);
-                        return true;
-                    }
-                )
+                argThat(e -> {
+                    assertEquals(token, e.key());
+                    assertEquals(payload, e.value());
+                    assertTrue(e.timeToLive() > 0);
+                    return true;
+                })
             );
     }
 
@@ -524,10 +534,9 @@ class Oauth2PolicyTest {
         final TestObserver<SecurityToken> obs = cut.extractSecurityToken(ctx).test();
 
         obs.assertComplete().assertValueCount(1);
-        obs.assertValue(
-            securityToken ->
-                securityToken.getTokenType().equals(SecurityToken.TokenType.CLIENT_ID.name()) &&
-                securityToken.getTokenValue().equals("my-test-client-id")
+        obs.assertValue(securityToken ->
+            securityToken.getTokenType().equals(SecurityToken.TokenType.CLIENT_ID.name()) &&
+            securityToken.getTokenValue().equals("my-test-client-id")
         );
         verify(ctx).setAttribute(eq(CONTEXT_ATTRIBUTE_JWT), Mockito.<LazyJWT>argThat(jwt -> token.equals(jwt.getToken())));
     }
@@ -570,30 +579,24 @@ class Oauth2PolicyTest {
         lenient().when(oAuth2Response.isSuccess()).thenReturn(success);
         lenient().when(oAuth2Response.getPayload()).thenReturn(payload);
 
-        doAnswer(
-                i -> {
-                    i.<Handler<OAuth2Response>>getArgument(1).handle(oAuth2Response);
-                    return null;
-                }
-            )
+        doAnswer(i -> {
+                i.<Handler<OAuth2Response>>getArgument(1).handle(oAuth2Response);
+                return null;
+            })
             .when(oAuth2Resource)
             .introspect(eq(token), any(Handler.class));
     }
 
-    private void verifyInterruptWith(int httpStatus, String message, String key, String contentType) {
+    private void verifyInterruptWith(int httpStatus, String key, final String message) {
         verify(ctx)
             .interruptWith(
-                argThat(
-                    failure -> {
-                        assertEquals(httpStatus, failure.statusCode());
-                        assertEquals(message, failure.message());
-                        assertEquals(key, failure.key());
-                        assertNull(failure.parameters());
-                        assertEquals(contentType, failure.contentType());
-
-                        return true;
-                    }
-                )
+                argThat(failure -> {
+                    assertEquals(httpStatus, failure.statusCode());
+                    assertEquals(message, failure.message());
+                    assertEquals(key, failure.key());
+                    assertNull(failure.parameters());
+                    return true;
+                })
             );
     }
 
