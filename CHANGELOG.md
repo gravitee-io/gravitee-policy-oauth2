@@ -1,3 +1,15 @@
+# [3.0.0-alpha.5](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/3.0.0-alpha.4...3.0.0-alpha.5) (2023-07-18)
+
+
+### chore
+
+* **deps:** update gravitee-parent ([18402bb](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/18402bb6b261e2d294b2676f31313fc494542b35))
+
+
+### BREAKING CHANGES
+
+* **deps:** require Java17
+
 # [3.0.0-alpha.4](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/3.0.0-alpha.3...3.0.0-alpha.4) (2023-07-07)
 
 
