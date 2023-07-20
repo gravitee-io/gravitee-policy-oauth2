@@ -33,6 +33,15 @@ $ curl -H "Authorization: Bearer |accessToken|" \
            http://gateway/api/resource
 ----
 
+== Compatibility with APIM
+
+|===
+| Plugin version | APIM version
+| 1.x            | Up to 3.19.x
+| 2.0.x          | 3.20.x
+| 3.x            | 4.x to latest
+|===
+
 == Attributes
 
 |===
