@@ -1,3 +1,10 @@
+## [3.0.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/3.0.0...3.0.1) (2023-07-20)
+
+
+### Bug Fixes
+
+* update policy description ([5331542](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/53315420d65a9c6f6b6c47af687f747fa4a78474))
+
 # [3.0.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/2.3.2...3.0.0) (2023-07-18)
 
 
