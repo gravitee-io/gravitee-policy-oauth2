@@ -60,8 +60,9 @@ public class TokenIntrospectionResult {
     }
 
     public String getClientId() {
-        if (hasValidPayload()) {
-            return oAuth2ResponseJsonNode.path(OAUTH_PAYLOAD_CLIENT_ID_NODE).asText();
+        JsonNode extractPath = extractPath(OAUTH_PAYLOAD_CLIENT_ID_NODE);
+        if (extractPath != null) {
+            return extractPath.asText();
         }
         return null;
     }
@@ -101,8 +102,16 @@ public class TokenIntrospectionResult {
     }
 
     public String extractUser(String userClaim) {
+        JsonNode extractPath = extractPath(userClaim == null ? OAUTH_PAYLOAD_SUB_NODE : userClaim);
+        if (extractPath != null) {
+            return extractPath.asText();
+        }
+        return null;
+    }
+
+    public JsonNode extractPath(String path) {
         if (hasValidPayload()) {
-            return oAuth2ResponseJsonNode.path(userClaim == null ? OAUTH_PAYLOAD_SUB_NODE : userClaim).asText();
+            return oAuth2ResponseJsonNode.path(path);
         }
         return null;
     }

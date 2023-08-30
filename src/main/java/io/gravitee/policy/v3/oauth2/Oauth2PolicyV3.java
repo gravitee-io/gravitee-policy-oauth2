@@ -22,11 +22,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.gravitee.common.http.HttpStatusCode;
+import io.gravitee.common.security.CertificateUtils;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
 import io.gravitee.gateway.api.handler.Handler;
 import io.gravitee.gateway.api.http.HttpHeaderNames;
+import io.gravitee.gateway.api.http.HttpHeaders;
 import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.api.PolicyResult;
 import io.gravitee.policy.api.annotations.OnRequest;
@@ -39,11 +41,14 @@ import io.gravitee.resource.cache.api.Element;
 import io.gravitee.resource.oauth2.api.OAuth2Resource;
 import io.gravitee.resource.oauth2.api.OAuth2Response;
 import java.io.IOException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
+import javax.net.ssl.SSLSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
@@ -64,6 +69,8 @@ public class Oauth2PolicyV3 {
     public static final String OAUTH_PAYLOAD_CLIENT_ID_NODE = "client_id";
     public static final String OAUTH_PAYLOAD_SUB_NODE = "sub";
     public static final String OAUTH_PAYLOAD_EXP = "exp";
+    public static final String OAUTH_PAYLOAD_CNF = "cnf";
+    public static final String OAUTH_PAYLOAD_X5T = "x5t#S256";
 
     public static final String CONTEXT_ATTRIBUTE_PREFIX = "oauth.";
     public static final String CONTEXT_ATTRIBUTE_OAUTH_PAYLOAD = CONTEXT_ATTRIBUTE_PREFIX + "payload";
@@ -76,6 +83,7 @@ public class Oauth2PolicyV3 {
     public static final String OAUTH2_INVALID_ACCESS_TOKEN_KEY = "OAUTH2_INVALID_ACCESS_TOKEN";
     public static final String OAUTH2_INVALID_SERVER_RESPONSE_KEY = "OAUTH2_INVALID_SERVER_RESPONSE";
     public static final String OAUTH2_INSUFFICIENT_SCOPE_KEY = "OAUTH2_INSUFFICIENT_SCOPE";
+    public static final String OAUTH2_INVALID_CERTIFICATE_BOUND_THUMBPRINT = "OAUTH2_INVALID_CERTIFICATE_BOUND_THUMBPRINT";
     public static final String OAUTH2_SERVER_UNAVAILABLE_KEY = "OAUTH2_SERVER_UNAVAILABLE";
 
     public static final String OAUTH2_UNAUTHORIZED_MESSAGE = "Unauthorized";
@@ -224,6 +232,25 @@ public class Oauth2PolicyV3 {
             }
         }
 
+        // Check confirmation Method and certificate thumbprint
+        OAuth2PolicyConfiguration.ConfirmationMethodValidation confirmationMethodValidation =
+            oAuth2PolicyConfiguration.getConfirmationMethodValidation();
+        if (confirmationMethodValidation != null && confirmationMethodValidation.getCertificateBoundThumbprint().isEnabled()) {
+            String tokenThumbprint = oauthResponseNode.path(OAUTH_PAYLOAD_CNF).path(OAUTH_PAYLOAD_X5T).asText();
+            if (
+                !isValidCertificateThumbprint(
+                    tokenThumbprint,
+                    request.sslSession(),
+                    request.headers(),
+                    confirmationMethodValidation.isIgnoreMissing(),
+                    confirmationMethodValidation.getCertificateBoundThumbprint()
+                )
+            ) {
+                sendError(OAUTH2_INVALID_CERTIFICATE_BOUND_THUMBPRINT, response, policyChain);
+                return;
+            }
+        }
+
         // Store OAuth2 payload into execution context if required
         if (oAuth2PolicyConfiguration.isExtractPayload()) {
             executionContext.setAttribute(CONTEXT_ATTRIBUTE_OAUTH_PAYLOAD, oauth2payload);
@@ -300,5 +327,32 @@ public class Oauth2PolicyV3 {
         } else {
             return tokenScopes.stream().anyMatch(requiredScopes::contains);
         }
+    }
+
+    protected static boolean isValidCertificateThumbprint(
+        final String tokenThumbprint,
+        final SSLSession sslSession,
+        final HttpHeaders headers,
+        final boolean ignoreMissingCnf,
+        final OAuth2PolicyConfiguration.CertificateBoundThumbprint certificateBoundThumbprint
+    ) {
+        // Ignore empty configuration method
+        if (!StringUtils.hasText(tokenThumbprint) && ignoreMissingCnf) {
+            return true;
+        } else if (!StringUtils.hasText(tokenThumbprint) && !ignoreMissingCnf) {
+            return false;
+        }
+
+        // Compute client certificate thumbprint
+        Optional<X509Certificate> clientCertificate;
+        if (certificateBoundThumbprint.isExtractCertificateFromHeader()) {
+            clientCertificate = CertificateUtils.extractCertificate(headers, certificateBoundThumbprint.getHeaderName());
+        } else {
+            clientCertificate = CertificateUtils.extractPeerCertificate(sslSession);
+        }
+        return clientCertificate
+            .map(x509Certificate -> CertificateUtils.generateThumbprint(x509Certificate, "SHA-256"))
+            .map(tokenThumbprint::equals)
+            .orElse(false);
     }
 }

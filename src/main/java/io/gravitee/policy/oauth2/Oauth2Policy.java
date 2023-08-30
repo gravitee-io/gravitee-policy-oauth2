@@ -196,6 +196,24 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
             }
         }
 
+        // Check confirmation Method and certificate thumbprint
+        OAuth2PolicyConfiguration.ConfirmationMethodValidation confirmationMethodValidation =
+            oAuth2PolicyConfiguration.getConfirmationMethodValidation();
+        if (confirmationMethodValidation != null && confirmationMethodValidation.getCertificateBoundThumbprint().isEnabled()) {
+            String tokenThumbprint = tokenIntrospectionResult.extractPath(OAUTH_PAYLOAD_CNF).path(OAUTH_PAYLOAD_X5T).asText();
+            if (
+                !isValidCertificateThumbprint(
+                    tokenThumbprint,
+                    ctx.request().sslSession(),
+                    ctx.request().headers(),
+                    confirmationMethodValidation.isIgnoreMissing(),
+                    confirmationMethodValidation.getCertificateBoundThumbprint()
+                )
+            ) {
+                return sendError(ctx, OAUTH2_INVALID_CERTIFICATE_BOUND_THUMBPRINT);
+            }
+        }
+
         // Store OAuth2 payload into execution context if required
         if (oAuth2PolicyConfiguration.isExtractPayload()) {
             ctx.setAttribute(CONTEXT_ATTRIBUTE_OAUTH_PAYLOAD, tokenIntrospectionResult.getOauth2ResponsePayload());
