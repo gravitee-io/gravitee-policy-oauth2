@@ -121,6 +121,36 @@ APIM supports two types of authorization server:
 ^.^|array of string
 |===
 
+=== Specific configuration for Confirmation Method validation
+
+|===
+|Property |Required |Description |Type| Default
+
+.^|confirmationMethodValidation.ignoreMissing
+^.^|-
+|Will ignore CNF validation if the token doesn't contain any CNF information.
+^.^|boolean
+^.^|false
+
+.^|confirmationMethodValidation.certificateBoundThumbprint.enabled
+^.^|-
+|Will validate the certificate thumbprint extracted from the access_token with the one provided by the client.
+^.^|boolean
+^.^|false
+
+.^|confirmationMethodValidation.certificateBoundThumbprint.extractCertificateFromHeader
+^.^|-
+|Enabled to extract the client certificate from request header. Necessary when the M-TLS connection is handled by a proxy.
+^.^|boolean
+^.^|false
+
+.^|confirmationMethodValidation.certificateBoundThumbprint.headerName
+^.^|-
+|Name of the header where to find the client certificate.
+^.^|string
+^.^|ssl-client-cert
+|===
+
 === Configuration example
 
 [source, json]
@@ -131,7 +161,15 @@ APIM supports two types of authorization server:
     "oauthCacheResource": "cache-resource-name",
     "extractPayload": true,
     "checkRequiredScopes": true,
-    "requiredScopes": ["openid", "resource:read", "resource:write"]
+    "requiredScopes": ["openid", "resource:read", "resource:write"],
+    "confirmationMethodValidation" : {
+      "ignoreMissing":  false,
+      "certificateBoundThumbprint" : {
+        "enabled": false,
+        "extractCertificateFromHeader": false,
+        "headerName": "ssl-client-cert"
+      }
+    }
   }
 }
 ----
@@ -153,6 +191,8 @@ APIM supports two types of authorization server:
 * No OAuth access token was supplied
 
 * Access token can not be validated by authorization server
+
+* Confirmation method can not be validated
 
 .^| ```403```
 | Issue encountered:

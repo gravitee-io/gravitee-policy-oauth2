@@ -18,11 +18,19 @@ package io.gravitee.policy.oauth2.configuration;
 import io.gravitee.policy.api.PolicyConfiguration;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
  */
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@Setter
 public class OAuth2PolicyConfiguration implements PolicyConfiguration {
 
     private String oauthResource;
@@ -31,61 +39,29 @@ public class OAuth2PolicyConfiguration implements PolicyConfiguration {
     private boolean checkRequiredScopes = false;
     private List<String> requiredScopes = new ArrayList<>();
     private boolean modeStrict = true;
+
+    private ConfirmationMethodValidation confirmationMethodValidation = new ConfirmationMethodValidation();
+
     private boolean propagateAuthHeader = true;
 
-    public String getOauthResource() {
-        return oauthResource;
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Getter
+    @Setter
+    public static class ConfirmationMethodValidation {
+
+        private boolean ignoreMissing = false;
+        private CertificateBoundThumbprint certificateBoundThumbprint = new CertificateBoundThumbprint();
     }
 
-    public void setOauthResource(String oauthResource) {
-        this.oauthResource = oauthResource;
-    }
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Getter
+    @Setter
+    public static class CertificateBoundThumbprint {
 
-    public boolean isExtractPayload() {
-        return extractPayload;
-    }
-
-    public void setExtractPayload(boolean extractPayload) {
-        this.extractPayload = extractPayload;
-    }
-
-    public boolean isCheckRequiredScopes() {
-        return checkRequiredScopes;
-    }
-
-    public void setCheckRequiredScopes(boolean checkRequiredScopes) {
-        this.checkRequiredScopes = checkRequiredScopes;
-    }
-
-    public List<String> getRequiredScopes() {
-        return requiredScopes;
-    }
-
-    public void setRequiredScopes(List<String> requiredScopes) {
-        this.requiredScopes = requiredScopes;
-    }
-
-    public boolean isModeStrict() {
-        return modeStrict;
-    }
-
-    public void setModeStrict(boolean modeStrict) {
-        this.modeStrict = modeStrict;
-    }
-
-    public boolean isPropagateAuthHeader() {
-        return propagateAuthHeader;
-    }
-
-    public void setPropagateAuthHeader(boolean propagateAuthHeader) {
-        this.propagateAuthHeader = propagateAuthHeader;
-    }
-
-    public String getOauthCacheResource() {
-        return oauthCacheResource;
-    }
-
-    public void setOauthCacheResource(String oauthCacheResource) {
-        this.oauthCacheResource = oauthCacheResource;
+        private boolean enabled = false;
+        private boolean extractCertificateFromHeader = false;
+        private String headerName = "ssl-client-cert";
     }
 }

@@ -30,6 +30,7 @@ public class DummyOAuth2Resource extends OAuth2Resource<DummyOAuth2Resource.Dumm
     public static String TOKEN_SUCCESS_WITHOUT_CLIENT_ID = "my-test-token-2";
     public static String TOKEN_SUCCESS_WITH_INVALID_PAYLOAD = "my-test-token-3";
     public static String TOKEN_FAIL = "my-test-token-4";
+    public static String TOKEN_SUCCESS_WITH_CNF = "my-test-token-5";
 
     public static String CLIENT_ID = "my-test-client-id";
 
@@ -43,6 +44,12 @@ public class DummyOAuth2Resource extends OAuth2Resource<DummyOAuth2Resource.Dumm
             response = new OAuth2Response(true, "{}");
         } else if (TOKEN_SUCCESS_WITH_INVALID_PAYLOAD.equals(accessToken)) {
             response = new OAuth2Response(true, "{this _is _invalid json");
+        } else if (TOKEN_SUCCESS_WITH_CNF.equals(accessToken)) {
+            response =
+                new OAuth2Response(
+                    true,
+                    "{\"client_id\": \"" + CLIENT_ID + "\", \"cnf\": { \"x5t#S256\" : \"2oHrNOqScxD8EHkb7_GYmnNvWqGj5M31Dqsrk3Jl2Yk\"}}"
+                );
         } else if (TOKEN_FAIL.equals(accessToken)) {
             response = new OAuth2Response(false, null);
         } else {
