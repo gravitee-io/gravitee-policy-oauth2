@@ -1,3 +1,10 @@
+## [3.0.2](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/3.0.1...3.0.2) (2023-09-05)
+
+
+### Bug Fixes
+
+* pom.xml to reduce vulnerabilities ([ee5d7d6](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/ee5d7d6667b08af88f9ba71d9edb9a2e77a4353b))
+
 ## [3.0.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/3.0.0...3.0.1) (2023-07-20)
 
 
