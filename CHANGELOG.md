@@ -1,3 +1,10 @@
+## [3.0.3](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/3.0.2...3.0.3) (2023-10-06)
+
+
+### Bug Fixes
+
+* always remove AUTHORIZATION before policyChain.doNext ([6a739fd](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/6a739fdfabbb4b3c83e1d325eb9b3a7f740d9da7))
+
 ## [3.0.2](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/3.0.1...3.0.2) (2023-09-05)
 
 
