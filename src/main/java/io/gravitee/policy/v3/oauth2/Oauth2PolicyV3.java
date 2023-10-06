@@ -142,10 +142,6 @@ public class Oauth2PolicyV3 {
             // Validate access token
             oauth2.introspect(accessToken, handleResponse(policyChain, request, response, executionContext, null));
         }
-
-        if (!oAuth2PolicyConfiguration.isPropagateAuthHeader()) {
-            request.headers().remove(HttpHeaderNames.AUTHORIZATION);
-        }
     }
 
     Handler<OAuth2Response> handleResponse(
@@ -253,6 +249,10 @@ public class Oauth2PolicyV3 {
                 element.setTimeToLive(Long.valueOf(ttl).intValue());
             }
             cacheResource.getCache(executionContext).put(element);
+        }
+
+        if (!oAuth2PolicyConfiguration.isPropagateAuthHeader()) {
+            request.headers().remove(HttpHeaderNames.AUTHORIZATION);
         }
 
         // Continue chaining
