@@ -15,6 +15,7 @@
  */
 package io.gravitee.policy.v3.oauth2;
 
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.argThat;
@@ -426,6 +427,7 @@ class Oauth2PolicyV3Test {
         HttpHeaders httpHeaders = mock(HttpHeaders.class);
 
         Oauth2PolicyV3 policy = new Oauth2PolicyV3(oAuth2PolicyConfiguration);
+        when(oAuth2PolicyConfiguration.isPropagateAuthHeader()).thenReturn(true);
         when(oAuth2PolicyConfiguration.getOauthResource()).thenReturn("oauth2");
         when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
         when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class))
@@ -443,6 +445,7 @@ class Oauth2PolicyV3Test {
 
     @Test
     void shouldValidate_goodIntrospection_withClientId() throws IOException {
+        when(oAuth2PolicyConfiguration.isPropagateAuthHeader()).thenReturn(true);
         when(oAuth2PolicyConfiguration.isExtractPayload()).thenReturn(true);
 
         Oauth2PolicyV3 policy = new Oauth2PolicyV3(oAuth2PolicyConfiguration);
@@ -475,6 +478,7 @@ class Oauth2PolicyV3Test {
 
     @Test
     void shouldValidate_goodIntrospection_withClientId_validScopes() throws IOException {
+        when(oAuth2PolicyConfiguration.isPropagateAuthHeader()).thenReturn(true);
         when(oAuth2PolicyConfiguration.isCheckRequiredScopes()).thenReturn(true);
         when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
         when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class))
@@ -493,6 +497,7 @@ class Oauth2PolicyV3Test {
 
     @Test
     void shouldValidate_goodIntrospection_withCache() throws IOException {
+        when(oAuth2PolicyConfiguration.isPropagateAuthHeader()).thenReturn(true);
         when(oAuth2PolicyConfiguration.isCheckRequiredScopes()).thenReturn(true);
         when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
         when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class))
@@ -513,6 +518,38 @@ class Oauth2PolicyV3Test {
 
         String payload = readResource("/io/gravitee/policy/oauth2/oauth2-response04.json");
         handler.handle(new OAuth2Response(true, payload));
+
+        verify(mockExecutionContext).setAttribute(Oauth2PolicyV3.CONTEXT_ATTRIBUTE_CLIENT_ID, "my-client-id");
+        verify(mockPolicychain).doNext(mockRequest, mockResponse);
+        verify(cache).put(any(Element.class));
+    }
+
+    @Test
+    void shouldValidate_goodIntrospection_withCache_without_auth_propagation() throws IOException {
+        when(oAuth2PolicyConfiguration.isPropagateAuthHeader()).thenReturn(false);
+        when(oAuth2PolicyConfiguration.isCheckRequiredScopes()).thenReturn(true);
+        when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class))
+            .thenReturn(customOAuth2Resource);
+        when(customOAuth2Resource.getScopeSeparator()).thenReturn(DEFAULT_OAUTH_SCOPE_SEPARATOR);
+        when(mockRequest.headers()).thenReturn(HttpHeaders.create().set("Authorization", "Bearer " + UUID.randomUUID()));
+
+        Cache cache = mock(Cache.class);
+        when(customCacheResource.getCache(any(ExecutionContext.class))).thenReturn(cache);
+
+        Oauth2PolicyV3 policy = new Oauth2PolicyV3(oAuth2PolicyConfiguration);
+        Handler<OAuth2Response> handler = policy.handleResponse(
+            mockPolicychain,
+            mockRequest,
+            mockResponse,
+            mockExecutionContext,
+            customCacheResource
+        );
+
+        String payload = readResource("/io/gravitee/policy/oauth2/oauth2-response04.json");
+        handler.handle(new OAuth2Response(true, payload));
+
+        assertNull(mockRequest.headers().get("Authorization"));
 
         verify(mockExecutionContext).setAttribute(Oauth2PolicyV3.CONTEXT_ATTRIBUTE_CLIENT_ID, "my-client-id");
         verify(mockPolicychain).doNext(mockRequest, mockResponse);
