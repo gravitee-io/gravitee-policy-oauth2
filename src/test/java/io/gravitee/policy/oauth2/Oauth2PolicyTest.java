@@ -28,6 +28,8 @@ import static io.gravitee.policy.oauth2.Oauth2Policy.OAUTH2_MISSING_ACCESS_TOKEN
 import static io.gravitee.policy.oauth2.Oauth2Policy.OAUTH2_MISSING_HEADER_KEY;
 import static io.gravitee.policy.oauth2.Oauth2Policy.OAUTH2_MISSING_SERVER_KEY;
 import static io.gravitee.policy.oauth2.Oauth2Policy.OAUTH2_SERVER_UNAVAILABLE_KEY;
+import static io.gravitee.policy.v3.oauth2.Oauth2PolicyV3.OAUTH2_TEMPORARILY_UNAVAILABLE_MESSAGE;
+import static io.gravitee.policy.v3.oauth2.Oauth2PolicyV3.OAUTH2_UNAUTHORIZED_MESSAGE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -89,7 +91,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
  * @author Jeoffrey HAEYAERT (jeoffrey.haeyaert at graviteesource.com)
  * @author GraviteeSource Team
  */
-@Disabled("Temporary disabled to make build pass and waiting for a new version of tests-sdk")
 @ExtendWith(MockitoExtension.class)
 class Oauth2PolicyTest {
 
@@ -159,7 +160,7 @@ class Oauth2PolicyTest {
         final TestObserver<Void> obs = cut.onRequest(ctx).test();
         obs.assertError(Throwable.class);
 
-        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, "Unauthorized", OAUTH2_MISSING_SERVER_KEY);
+        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, OAUTH2_MISSING_SERVER_KEY, OAUTH2_UNAUTHORIZED_MESSAGE);
     }
 
     @Test
@@ -170,7 +171,7 @@ class Oauth2PolicyTest {
         obs.assertError(Throwable.class);
 
         verify(responseHeaders).add(eq(HttpHeaderNames.WWW_AUTHENTICATE), anyString());
-        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, OAUTH2_MISSING_HEADER_KEY, null);
+        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, OAUTH2_MISSING_HEADER_KEY, OAUTH2_UNAUTHORIZED_MESSAGE);
     }
 
     @Test
@@ -182,7 +183,7 @@ class Oauth2PolicyTest {
         obs.assertError(Throwable.class);
 
         verify(responseHeaders).add(eq(HttpHeaderNames.WWW_AUTHENTICATE), anyString());
-        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, OAUTH2_MISSING_HEADER_KEY, null);
+        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, OAUTH2_MISSING_HEADER_KEY, OAUTH2_UNAUTHORIZED_MESSAGE);
     }
 
     @Test
@@ -194,7 +195,7 @@ class Oauth2PolicyTest {
         obs.assertError(Throwable.class);
 
         verify(responseHeaders).add(eq(HttpHeaderNames.WWW_AUTHENTICATE), anyString());
-        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, OAUTH2_MISSING_ACCESS_TOKEN_KEY, null);
+        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, OAUTH2_MISSING_ACCESS_TOKEN_KEY, OAUTH2_UNAUTHORIZED_MESSAGE);
     }
 
     @Test
@@ -227,7 +228,7 @@ class Oauth2PolicyTest {
         verify(ctx, never()).setAttribute(eq(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID), anyString());
         verify(responseHeaders).add(eq(HttpHeaderNames.WWW_AUTHENTICATE), anyString());
 
-        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, "Unauthorized", OAUTH2_INVALID_ACCESS_TOKEN_KEY);
+        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, OAUTH2_INVALID_ACCESS_TOKEN_KEY, OAUTH2_UNAUTHORIZED_MESSAGE);
     }
 
     @Test
@@ -254,7 +255,7 @@ class Oauth2PolicyTest {
         verify(ctx, never()).setAttribute(eq(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID), anyString());
         verify(responseHeaders).add(eq(HttpHeaderNames.WWW_AUTHENTICATE), anyString());
 
-        verifyInterruptWith(HttpStatusCode.SERVICE_UNAVAILABLE_503, "temporarily_unavailable", OAUTH2_SERVER_UNAVAILABLE_KEY);
+        verifyInterruptWith(HttpStatusCode.SERVICE_UNAVAILABLE_503, OAUTH2_SERVER_UNAVAILABLE_KEY, OAUTH2_TEMPORARILY_UNAVAILABLE_MESSAGE);
     }
 
     @Test
@@ -272,7 +273,7 @@ class Oauth2PolicyTest {
         verify(ctx, never()).setAttribute(eq(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID), anyString());
         verify(responseHeaders).add(eq(HttpHeaderNames.WWW_AUTHENTICATE), anyString());
 
-        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, "Unauthorized", OAUTH2_INVALID_SERVER_RESPONSE_KEY);
+        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, OAUTH2_INVALID_SERVER_RESPONSE_KEY, OAUTH2_UNAUTHORIZED_MESSAGE);
     }
 
     @Test
@@ -388,7 +389,7 @@ class Oauth2PolicyTest {
         verify(ctx).setAttribute(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID, "my-client-id");
         verify(ctx).setAttribute(ATTR_USER_ROLES, List.of("read", "write", "admin"));
 
-        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, "Unauthorized", OAUTH2_INSUFFICIENT_SCOPE_KEY);
+        verifyInterruptWith(HttpStatusCode.UNAUTHORIZED_401, OAUTH2_INSUFFICIENT_SCOPE_KEY, OAUTH2_UNAUTHORIZED_MESSAGE);
     }
 
     @Test
@@ -515,18 +516,21 @@ class Oauth2PolicyTest {
     }
 
     @Test
-    void extractSecurityTokenShouldReturnEmptyWhenTokenIsPresentButIntrospectionFails() {
+    void extractSecurityTokenShouldReturnInvalidWhenTokenIsPresentButIntrospectionFails() {
         prepareOauth2Resource();
         String token = prepareToken();
         prepareIntrospection(token, null, false);
 
         final TestObserver<SecurityToken> obs = cut.extractSecurityToken(ctx).test();
 
-        obs.assertComplete().assertValueCount(0);
+        obs.assertComplete().assertValueCount(1);
+        obs.assertValue(securityToken ->
+            securityToken.getTokenType().equals(SecurityToken.TokenType.CLIENT_ID.name()) && securityToken.isInvalid()
+        );
     }
 
     @Test
-    void extractSecurityTokenShouldReturnInvalidTokenWhenIntrospectionInError() {
+    void extractSecurityTokenShouldReturnInvalidWhenIntrospectionInError() {
         prepareOauth2Resource();
         String token = prepareToken();
         OAuth2ResourceException errorDuringIntrospection = new OAuth2ResourceException("Error during introspection");
