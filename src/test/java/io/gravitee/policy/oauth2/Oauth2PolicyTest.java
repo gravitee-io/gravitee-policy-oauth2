@@ -67,6 +67,7 @@ import io.gravitee.resource.api.ResourceManager;
 import io.gravitee.resource.cache.api.Cache;
 import io.gravitee.resource.cache.api.CacheResource;
 import io.gravitee.resource.oauth2.api.OAuth2Resource;
+import io.gravitee.resource.oauth2.api.OAuth2ResourceException;
 import io.gravitee.resource.oauth2.api.OAuth2Response;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.observers.TestObserver;
@@ -525,6 +526,18 @@ class Oauth2PolicyTest {
     }
 
     @Test
+    void extractSecurityTokenShouldReturnInvalidTokenWhenIntrospectionInError() {
+        prepareOauth2Resource();
+        String token = prepareToken();
+        OAuth2ResourceException errorDuringIntrospection = new OAuth2ResourceException("Error during introspection");
+        prepareIntrospection(token, errorDuringIntrospection);
+
+        final TestObserver<SecurityToken> obs = cut.extractSecurityToken(ctx).test();
+
+        obs.assertError(errorDuringIntrospection);
+    }
+
+    @Test
     void extractSecurityTokenShouldReturnTokenWhenTokenIsPresentAndIntrospectionSucceed() throws IOException {
         prepareOauth2Resource();
         String token = prepareToken();
@@ -578,6 +591,20 @@ class Oauth2PolicyTest {
         final OAuth2Response oAuth2Response = mock(OAuth2Response.class);
         lenient().when(oAuth2Response.isSuccess()).thenReturn(success);
         lenient().when(oAuth2Response.getPayload()).thenReturn(payload);
+
+        doAnswer(i -> {
+                i.<Handler<OAuth2Response>>getArgument(1).handle(oAuth2Response);
+                return null;
+            })
+            .when(oAuth2Resource)
+            .introspect(eq(token), any(Handler.class));
+    }
+
+    private void prepareIntrospection(String token, Throwable throwable) {
+        final OAuth2Response oAuth2Response = mock(OAuth2Response.class);
+        lenient().when(oAuth2Response.isSuccess()).thenReturn(false);
+        lenient().when(oAuth2Response.getPayload()).thenReturn(throwable.getMessage());
+        lenient().when(oAuth2Response.getThrowable()).thenReturn(throwable);
 
         doAnswer(i -> {
                 i.<Handler<OAuth2Response>>getArgument(1).handle(oAuth2Response);

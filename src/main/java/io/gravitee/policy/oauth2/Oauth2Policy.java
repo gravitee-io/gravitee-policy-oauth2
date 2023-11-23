@@ -100,6 +100,9 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
                 if (introspectionResult.hasClientId()) {
                     return Maybe.just(SecurityToken.forClientId(introspectionResult.getClientId()));
                 }
+                if (introspectionResult.getOauth2ResponseThrowable() != null) {
+                    return Maybe.error(introspectionResult.getOauth2ResponseThrowable());
+                }
                 return Maybe.just(SecurityToken.invalid(SecurityToken.TokenType.CLIENT_ID));
             });
     }
