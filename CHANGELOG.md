@@ -1,3 +1,10 @@
+## [3.0.4](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/3.0.3...3.0.4) (2023-11-24)
+
+
+### Bug Fixes
+
+* fail with an error if error during token extraction ([cd4937d](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/cd4937d99882c384ad2d3f81fe8e67aefc5c6ca3))
+
 ## [3.0.3](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/3.0.2...3.0.3) (2023-10-06)
 
 
