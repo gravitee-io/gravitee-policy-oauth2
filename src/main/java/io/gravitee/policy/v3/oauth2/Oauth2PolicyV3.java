@@ -128,6 +128,12 @@ public class Oauth2PolicyV3 {
         // Set access_token in context
         executionContext.setAttribute(CONTEXT_ATTRIBUTE_OAUTH_ACCESS_TOKEN, accessToken);
 
+        if (oAuth2PolicyConfiguration.getOauthCacheResource() != null) {
+            oAuth2PolicyConfiguration.setOauthCacheResource(
+                executionContext.getTemplateEngine().getValue(oAuth2PolicyConfiguration.getOauthCacheResource(), String.class)
+            );
+        }
+
         CacheResource<?> cacheResource = executionContext
             .getComponent(ResourceManager.class)
             .getResource(oAuth2PolicyConfiguration.getOauthCacheResource(), CacheResource.class);
