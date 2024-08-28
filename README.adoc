@@ -154,7 +154,7 @@ APIM supports two types of authorization server:
 
 * Access token can not be validated by authorization server
 
-.^| ```403```
+.^| ```503```
 | Issue encountered:
 
 * Access token can not be validated because of a technical error with
