@@ -1,3 +1,10 @@
+## [3.0.5](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/3.0.4...3.0.5) (2024-08-29)
+
+
+### Bug Fixes
+
+* Update status code in documentation ([240fa30](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/240fa30c4782c70c7e7a6879ab317e6412e824bc))
+
 ## [3.0.4](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/3.0.3...3.0.4) (2023-11-24)
 
 
