@@ -22,7 +22,7 @@
         },
         "oauthCacheResource": {
             "title": "Cache resource",
-            "description": "Cache resource used to store the tokens.",
+            "description": "Cache resource used to store the tokens. Supports EL.",
             "type": "string",
             "x-schema-form": {
                 "event": {

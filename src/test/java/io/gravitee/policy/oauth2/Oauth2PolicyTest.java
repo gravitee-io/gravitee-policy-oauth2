@@ -435,6 +435,7 @@ class Oauth2PolicyTest {
 
     private void prepareCacheResource() {
         when(configuration.getOauthCacheResource()).thenReturn(OAUTH_CACHE_RESOURCE);
+        when(templateEngine.getValue(OAUTH_CACHE_RESOURCE, String.class)).thenReturn(OAUTH_CACHE_RESOURCE);
         when(cacheResource.getCache(any(HttpExecutionContext.class))).thenReturn(cache);
         when(resourceManager.getResource(OAUTH_CACHE_RESOURCE, CacheResource.class)).thenReturn(cacheResource);
     }
