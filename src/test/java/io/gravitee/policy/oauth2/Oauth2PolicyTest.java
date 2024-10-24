@@ -54,9 +54,10 @@ import io.gravitee.gateway.api.handler.Handler;
 import io.gravitee.gateway.api.http.HttpHeaderNames;
 import io.gravitee.gateway.api.http.HttpHeaders;
 import io.gravitee.gateway.reactive.api.ExecutionFailure;
-import io.gravitee.gateway.reactive.api.context.HttpExecutionContext;
-import io.gravitee.gateway.reactive.api.context.Request;
-import io.gravitee.gateway.reactive.api.context.Response;
+import io.gravitee.gateway.reactive.api.context.GenericExecutionContext;
+import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
+import io.gravitee.gateway.reactive.api.context.http.HttpPlainRequest;
+import io.gravitee.gateway.reactive.api.context.http.HttpPlainResponse;
 import io.gravitee.gateway.reactive.api.policy.SecurityToken;
 import io.gravitee.gateway.reactive.core.context.DefaultExecutionContext;
 import io.gravitee.gateway.reactive.core.context.MutableRequest;
@@ -107,13 +108,13 @@ class Oauth2PolicyTest {
     private OAuth2PolicyConfiguration configuration;
 
     @Mock
-    private Request request;
+    private HttpPlainRequest request;
 
     @Mock
-    private Response response;
+    private HttpPlainResponse response;
 
-    @Mock
-    private HttpExecutionContext ctx;
+    @Mock(extraInterfaces = GenericExecutionContext.class)
+    private HttpPlainExecutionContext ctx;
 
     @Mock
     private ResourceManager resourceManager;
@@ -435,7 +436,7 @@ class Oauth2PolicyTest {
 
     private void prepareCacheResource() {
         when(configuration.getOauthCacheResource()).thenReturn(OAUTH_CACHE_RESOURCE);
-        when(cacheResource.getCache(any(HttpExecutionContext.class))).thenReturn(cache);
+        when(cacheResource.getCache(any(GenericExecutionContext.class))).thenReturn(cache);
         when(resourceManager.getResource(OAUTH_CACHE_RESOURCE, CacheResource.class)).thenReturn(cacheResource);
     }
 
@@ -565,7 +566,7 @@ class Oauth2PolicyTest {
         final String payload = readJsonResource("/io/gravitee/policy/oauth2/oauth2-response09.json").toString();
         prepareIntrospection(token, payload, true);
 
-        HttpExecutionContext ctx = new DefaultExecutionContext(mock(MutableRequest.class), mock(MutableResponse.class));
+        HttpPlainExecutionContext ctx = new DefaultExecutionContext(mock(MutableRequest.class), mock(MutableResponse.class));
         TestObserver<TokenIntrospectionResult> result1 = cut.introspectAccessToken(ctx, token, oAuth2Resource).test();
         TestObserver<TokenIntrospectionResult> result2 = cut.introspectAccessToken(ctx, token, oAuth2Resource).test();
 
