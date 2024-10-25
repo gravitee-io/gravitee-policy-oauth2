@@ -55,6 +55,7 @@ import io.gravitee.gateway.api.http.HttpHeaderNames;
 import io.gravitee.gateway.api.http.HttpHeaders;
 import io.gravitee.gateway.reactive.api.ExecutionFailure;
 import io.gravitee.gateway.reactive.api.context.GenericExecutionContext;
+import io.gravitee.gateway.reactive.api.context.base.BaseExecutionContext;
 import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
 import io.gravitee.gateway.reactive.api.context.http.HttpPlainRequest;
 import io.gravitee.gateway.reactive.api.context.http.HttpPlainResponse;
@@ -436,7 +437,7 @@ class Oauth2PolicyTest {
 
     private void prepareCacheResource() {
         when(configuration.getOauthCacheResource()).thenReturn(OAUTH_CACHE_RESOURCE);
-        when(cacheResource.getCache(any(GenericExecutionContext.class))).thenReturn(cache);
+        when(cacheResource.getCache(any(BaseExecutionContext.class))).thenReturn(cache);
         when(resourceManager.getResource(OAUTH_CACHE_RESOURCE, CacheResource.class)).thenReturn(cacheResource);
     }
 
