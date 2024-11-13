@@ -49,6 +49,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import javax.security.auth.callback.Callback;
+import lombok.Getter;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerValidatorCallback;
 import org.apache.kafka.common.security.oauthbearer.internals.secured.BasicOAuthBearerToken;
@@ -68,6 +69,42 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
     public static final String ATTR_INTERNAL_TOKEN_INTROSPECTIONS = "token-introspection-cache";
     public static final String ATTR_INTERNAL_TOKEN_INTROSPECTION_RESULT = "token-introspection-result";
     private static final Logger log = LoggerFactory.getLogger(Oauth2Policy.class);
+
+    private enum Oauth2Failure {
+        OAUTH2_MISSING_SERVER_FAILURE(UNAUTHORIZED_401, OAUTH2_MISSING_SERVER_KEY, OAUTH2_UNAUTHORIZED_MESSAGE, false),
+        OAUTH2_MISSING_HEADER_FAILURE(UNAUTHORIZED_401, OAUTH2_MISSING_HEADER_KEY, OAUTH2_UNAUTHORIZED_MESSAGE, true),
+        OAUTH2_MISSING_ACCESS_TOKEN_FAILURE(UNAUTHORIZED_401, OAUTH2_MISSING_ACCESS_TOKEN_KEY, OAUTH2_UNAUTHORIZED_MESSAGE, true),
+        OAUTH2_INVALID_ACCESS_TOKEN_FAILURE(UNAUTHORIZED_401, OAUTH2_INVALID_ACCESS_TOKEN_KEY, OAUTH2_UNAUTHORIZED_MESSAGE, true),
+        OAUTH2_INVALID_SERVER_RESPONSE_FAILURE(UNAUTHORIZED_401, OAUTH2_INVALID_SERVER_RESPONSE_KEY, OAUTH2_UNAUTHORIZED_MESSAGE, true),
+        OAUTH2_INSUFFICIENT_SCOPE_FAILURE(UNAUTHORIZED_401, OAUTH2_INSUFFICIENT_SCOPE_KEY, OAUTH2_UNAUTHORIZED_MESSAGE, true),
+        OAUTH2_SERVER_UNAVAILABLE_FAILURE(
+            SERVICE_UNAVAILABLE_503,
+            OAUTH2_SERVER_UNAVAILABLE_KEY,
+            OAUTH2_TEMPORARILY_UNAVAILABLE_MESSAGE,
+            true
+        );
+
+        private final int httpStatusCode;
+
+        @Getter
+        private final String failureKey;
+
+        private final String failureMessage;
+
+        @Getter
+        private final boolean addWWWAuthenticateHeader;
+
+        Oauth2Failure(int httpStatusCode, String failureKey, String failureMessage, boolean addWWWAuthenticateHeader) {
+            this.httpStatusCode = httpStatusCode;
+            this.failureKey = failureKey;
+            this.failureMessage = failureMessage;
+            this.addWWWAuthenticateHeader = addWWWAuthenticateHeader;
+        }
+
+        public ExecutionFailure toExecutionFailure() {
+            return new ExecutionFailure(httpStatusCode).key(failureKey).message(failureMessage);
+        }
+    }
 
     public Oauth2Policy(OAuth2PolicyConfiguration oAuth2PolicyConfiguration) {
         super(oAuth2PolicyConfiguration);
@@ -179,19 +216,14 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
         final OAuth2Resource<?> oauth2Resource = getOauth2Resource(ctx);
 
         if (oauth2Resource == null) {
-            return interruptWith(
-                ctx,
-                new ExecutionFailure(UNAUTHORIZED_401).key(OAUTH2_MISSING_SERVER_KEY).message(OAUTH2_UNAUTHORIZED_MESSAGE)
-            );
+            return interruptWith(ctx, Oauth2Failure.OAUTH2_MISSING_SERVER_FAILURE);
         }
 
         return fetchJWTToken(ctx, false)
-            .switchIfEmpty(
-                Maybe.defer(() -> sendError(ctx, UNAUTHORIZED_401, OAUTH2_MISSING_HEADER_KEY, OAUTH2_UNAUTHORIZED_MESSAGE).toMaybe())
-            )
+            .switchIfEmpty(Maybe.defer(() -> interruptWith(ctx, Oauth2Failure.OAUTH2_MISSING_HEADER_FAILURE).toMaybe()))
             .flatMapCompletable(accessToken -> {
                 if (accessToken.isBlank()) {
-                    return sendError(ctx, UNAUTHORIZED_401, OAUTH2_MISSING_ACCESS_TOKEN_KEY, OAUTH2_UNAUTHORIZED_MESSAGE);
+                    return interruptWith(ctx, Oauth2Failure.OAUTH2_MISSING_ACCESS_TOKEN_FAILURE);
                 }
 
                 // Set access_token in context
@@ -233,7 +265,7 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
         OAuth2Resource<?> oauth2Resource
     ) {
         if (!tokenIntrospectionResult.hasValidPayload()) {
-            return sendError(ctx, UNAUTHORIZED_401, OAUTH2_INVALID_SERVER_RESPONSE_KEY, OAUTH2_UNAUTHORIZED_MESSAGE);
+            return interruptWith(ctx, Oauth2Failure.OAUTH2_INVALID_SERVER_RESPONSE_FAILURE);
         }
 
         if (tokenIntrospectionResult.hasClientId()) {
@@ -252,7 +284,7 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
         // Check required scopes to access the resource
         if (oAuth2PolicyConfiguration.isCheckRequiredScopes()) {
             if (!hasRequiredScopes(scopes, oAuth2PolicyConfiguration.getRequiredScopes(), oAuth2PolicyConfiguration.isModeStrict())) {
-                return sendError(ctx, UNAUTHORIZED_401, OAUTH2_INSUFFICIENT_SCOPE_KEY, OAUTH2_UNAUTHORIZED_MESSAGE);
+                return interruptWith(ctx, Oauth2Failure.OAUTH2_INSUFFICIENT_SCOPE_FAILURE);
             }
         }
 
@@ -312,14 +344,9 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
                     return validateOAuth2Payload(ctx, introspectionResult, oauth2Resource);
                 } else {
                     if (introspectionResult.getOauth2ResponseThrowable() == null) {
-                        return sendError(ctx, UNAUTHORIZED_401, OAUTH2_INVALID_ACCESS_TOKEN_KEY, OAUTH2_UNAUTHORIZED_MESSAGE);
+                        return interruptWith(ctx, Oauth2Failure.OAUTH2_INVALID_ACCESS_TOKEN_FAILURE);
                     } else {
-                        return sendError(
-                            ctx,
-                            SERVICE_UNAVAILABLE_503,
-                            OAUTH2_SERVER_UNAVAILABLE_KEY,
-                            OAUTH2_TEMPORARILY_UNAVAILABLE_MESSAGE
-                        );
+                        return interruptWith(ctx, Oauth2Failure.OAUTH2_SERVER_UNAVAILABLE_FAILURE);
                     }
                 }
             });
@@ -333,24 +360,16 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
      *      error="invalid_token",
      *      error_description="The access token expired"
      */
-    private Completable sendError(BaseExecutionContext ctx, int errorStatus, String responseKey, String failureMessage) {
+    private Completable interruptWith(BaseExecutionContext ctx, Oauth2Failure failure) {
         if (ctx instanceof HttpPlainExecutionContext httpPlainExecutionContext) {
-            String headerValue = BEARER_AUTHORIZATION_TYPE + " realm=\"gravitee.io\"";
-
-            httpPlainExecutionContext.response().headers().add(HttpHeaderNames.WWW_AUTHENTICATE, headerValue);
-
-            return httpPlainExecutionContext.interruptWith(new ExecutionFailure(errorStatus).key(responseKey).message(failureMessage));
+            if (failure.isAddWWWAuthenticateHeader()) {
+                String headerValue = BEARER_AUTHORIZATION_TYPE + " realm=\"gravitee.io\"";
+                httpPlainExecutionContext.response().headers().add(HttpHeaderNames.WWW_AUTHENTICATE, headerValue);
+            }
+            return httpPlainExecutionContext.interruptWith(failure.toExecutionFailure());
         }
         // FIXME: Kafka Gateway - manage interruption with Kafka.
-        return Completable.error(new Exception(responseKey));
-    }
-
-    private Completable interruptWith(BaseExecutionContext ctx, ExecutionFailure failure) {
-        if (ctx instanceof HttpPlainExecutionContext httpPlainExecutionContext) {
-            return httpPlainExecutionContext.interruptWith(failure);
-        }
-        // FIXME: Kafka Gateway - manage interruption with Kafka.
-        return Completable.error(new Exception(failure.key()));
+        return Completable.error(new Exception(failure.getFailureKey()));
     }
 
     /**
