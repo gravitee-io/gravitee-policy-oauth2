@@ -1,3 +1,20 @@
+# [4.0.0-alpha.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/3.0.5...4.0.0-alpha.1) (2024-11-14)
+
+
+### Code Refactoring
+
+* use new HttpSecurityPolicy interface ([9e65b1e](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/9e65b1ee8ecb43a505657f2d77c3a42c8b8cdece))
+
+
+### Features
+
+* implement kafka security policy ([a5a87a8](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/a5a87a8367a9c48b2863488efba85a737842892e))
+
+
+### BREAKING CHANGES
+
+* requires APIM 4.6+
+
 ## [3.0.5](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/3.0.4...3.0.5) (2024-08-29)
 
 
