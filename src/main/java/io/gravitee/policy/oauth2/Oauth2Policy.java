@@ -180,7 +180,7 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
                                 extractedToken,
                                 Set.of(), // Scopes are fully managed by Gravitee, it is useless to extract & provide them to the Kafka security context.
                                 (expirationTime == null ? Long.MAX_VALUE : expirationTime),
-                                user,
+                                user != null ? user : "unknown",
                                 issueTime
                             );
 
@@ -189,6 +189,15 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
                     }
                 })
             )
+            .onErrorResumeNext(throwable -> {
+                Callback[] callbacks = ctx.callbacks();
+                for (Callback callback : callbacks) {
+                    if (callback instanceof OAuthBearerValidatorCallback oauthCallback) {
+                        oauthCallback.error("invalid_token", null, null);
+                    }
+                }
+                return Completable.complete();
+            })
             .doAfterTerminate(() -> ctx.removeInternalAttribute(ATTR_INTERNAL_TOKEN_INTROSPECTION_RESULT));
     }
 
