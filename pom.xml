@@ -42,7 +42,7 @@
         <gravitee-apim.version>4.0.0</gravitee-apim.version>
         <gravitee-resource-api.version>1.1.0</gravitee-resource-api.version>
         <gravitee-resource-oauth2-provider-api.version>1.4.0</gravitee-resource-oauth2-provider-api.version>
-        <gravitee-resource-cache-provider-api.version>1.4.0</gravitee-resource-cache-provider-api.version>
+        <gravitee-resource-cache-provider-api.version>2.0.0</gravitee-resource-cache-provider-api.version>
         <nimbus-jose-jwt.version>9.15.2</nimbus-jose-jwt.version>
         <guava.version>31.1-jre</guava.version>
 
