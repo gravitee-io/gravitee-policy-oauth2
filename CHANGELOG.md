@@ -1,3 +1,10 @@
+# [4.0.0-alpha.2](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/4.0.0-alpha.1...4.0.0-alpha.2) (2024-11-25)
+
+
+### Bug Fixes
+
+* invoke callback and complete on auth failure ([121bfeb](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/121bfebf7199db8078781941038caaeb839af13c))
+
 # [4.0.0-alpha.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/3.0.5...4.0.0-alpha.1) (2024-11-14)
 
 
