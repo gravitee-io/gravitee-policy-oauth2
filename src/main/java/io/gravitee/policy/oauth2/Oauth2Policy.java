@@ -139,7 +139,16 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
 
     @Override
     public Maybe<SecurityToken> extractSecurityToken(KafkaConnectionContext ctx) {
-        return getSecurityTokenFromContext(ctx);
+        return getSecurityTokenFromContext(ctx)
+            .doAfterSuccess(securityToken -> {
+                if (securityToken != null && securityToken.isInvalid()) {
+                    for (Callback callback : ctx.callbacks()) {
+                        if (callback instanceof OAuthBearerValidatorCallback oAuthCallback) {
+                            oAuthCallback.error("invalid_token", null, null);
+                        }
+                    }
+                }
+            });
     }
 
     @Override
