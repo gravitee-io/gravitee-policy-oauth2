@@ -315,7 +315,10 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements SecurityPolicy {
         if (oAuth2PolicyConfiguration.getOauthCacheResource() != null) {
             CacheResource cacheResource = ctx
                 .getComponent(ResourceManager.class)
-                .getResource(oAuth2PolicyConfiguration.getOauthCacheResource(), CacheResource.class);
+                .getResource(
+                    ctx.getTemplateEngine().getValue(oAuth2PolicyConfiguration.getOauthCacheResource(), String.class),
+                    CacheResource.class
+                );
             if (cacheResource != null) {
                 return cacheResource.getCache(ctx);
             }
