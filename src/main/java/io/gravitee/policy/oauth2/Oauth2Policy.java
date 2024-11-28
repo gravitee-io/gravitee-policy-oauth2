@@ -55,6 +55,7 @@ import org.apache.kafka.common.security.oauthbearer.OAuthBearerValidatorCallback
 import org.apache.kafka.common.security.oauthbearer.internals.secured.BasicOAuthBearerToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.env.Environment;
 
 /**
  * @author Jeoffrey HAEYAERT (jeoffrey.haeyaert at graviteesource.com)
@@ -68,6 +69,10 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
 
     public static final String ATTR_INTERNAL_TOKEN_INTROSPECTIONS = "token-introspection-cache";
     public static final String ATTR_INTERNAL_TOKEN_INTROSPECTION_RESULT = "token-introspection-result";
+
+    private static final String KAFKA_OAUTHBEARER_MAX_TOKEN_LIFETIME = "kafka.oauthbearer.maxTokenLifetime";
+    private static final long DEFAULT_MAX_TOKEN_LIFETIME_MS = 60 * 60 * 1000L; // 1 hour
+
     private static final Logger log = LoggerFactory.getLogger(Oauth2Policy.class);
 
     private enum Oauth2Failure {
@@ -176,10 +181,17 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
                             Long expirationTime = tokenIntrospectionResult.getExpirationTime();
                             Long issueTime = tokenIntrospectionResult.getIssuedAtTime();
 
+                            Environment environment = ctx.getComponent(Environment.class);
+                            long maxTokenLifetime = environment.getProperty(
+                                KAFKA_OAUTHBEARER_MAX_TOKEN_LIFETIME,
+                                Long.class,
+                                DEFAULT_MAX_TOKEN_LIFETIME_MS
+                            );
+
                             OAuthBearerToken token = new BasicOAuthBearerToken(
                                 extractedToken,
                                 Set.of(), // Scopes are fully managed by Gravitee, it is useless to extract & provide them to the Kafka security context.
-                                (expirationTime == null ? Long.MAX_VALUE : expirationTime),
+                                (expirationTime == null ? maxTokenLifetime : Math.min(maxTokenLifetime, expirationTime * 1000)),
                                 user != null ? user : "unknown",
                                 issueTime
                             );
