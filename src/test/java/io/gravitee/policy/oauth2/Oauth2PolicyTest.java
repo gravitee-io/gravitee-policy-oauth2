@@ -588,7 +588,7 @@ class Oauth2PolicyTest {
 
     private void prepareOauth2Resource() {
         when(configuration.getOauthResource()).thenReturn(OAUTH_RESOURCE);
-        when(templateEngine.getValue(OAUTH_RESOURCE, String.class)).thenReturn(OAUTH_RESOURCE);
+        when(templateEngine.evalNow(OAUTH_RESOURCE, String.class)).thenReturn(OAUTH_RESOURCE);
         when(resourceManager.getResource(OAUTH_RESOURCE, OAuth2Resource.class)).thenReturn(oAuth2Resource);
         lenient().when(oAuth2Resource.getScopeSeparator()).thenReturn(DEFAULT_OAUTH_SCOPE_SEPARATOR);
     }

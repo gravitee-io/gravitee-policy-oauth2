@@ -406,10 +406,7 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
 
         return ctx
             .getComponent(ResourceManager.class)
-            .getResource(
-                ctx.getTemplateEngine().getValue(oAuth2PolicyConfiguration.getOauthResource(), String.class),
-                OAuth2Resource.class
-            );
+            .getResource(ctx.getTemplateEngine().evalNow(oAuth2PolicyConfiguration.getOauthResource(), String.class), OAuth2Resource.class);
     }
 
     /**
