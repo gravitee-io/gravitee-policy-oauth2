@@ -1,3 +1,10 @@
+# [4.0.0-alpha.4](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/4.0.0-alpha.3...4.0.0-alpha.4) (2024-12-30)
+
+
+### Bug Fixes
+
+* **deps:** bump apim version ([7ecbb48](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/7ecbb489d36915a159eeebb1e1b211e72c4508c3))
+
 # [4.0.0-alpha.3](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/4.0.0-alpha.2...4.0.0-alpha.3) (2024-11-29)
 
 
