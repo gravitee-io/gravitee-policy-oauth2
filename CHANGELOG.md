@@ -1,3 +1,41 @@
+# [4.0.0-alpha.4](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/4.0.0-alpha.3...4.0.0-alpha.4) (2024-12-30)
+
+
+### Bug Fixes
+
+* **deps:** bump apim version ([7ecbb48](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/7ecbb489d36915a159eeebb1e1b211e72c4508c3))
+
+# [4.0.0-alpha.3](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/4.0.0-alpha.2...4.0.0-alpha.3) (2024-11-29)
+
+
+### Features
+
+* set a max value for kafka token lifetime ([024ba6e](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/024ba6e50fd2af9ebc3967740d20993877eb9821))
+
+# [4.0.0-alpha.2](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/4.0.0-alpha.1...4.0.0-alpha.2) (2024-11-25)
+
+
+### Bug Fixes
+
+* invoke callback and complete on auth failure ([121bfeb](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/121bfebf7199db8078781941038caaeb839af13c))
+
+# [4.0.0-alpha.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/3.0.5...4.0.0-alpha.1) (2024-11-14)
+
+
+### Code Refactoring
+
+* use new HttpSecurityPolicy interface ([9e65b1e](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/9e65b1ee8ecb43a505657f2d77c3a42c8b8cdece))
+
+
+### Features
+
+* implement kafka security policy ([a5a87a8](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/a5a87a8367a9c48b2863488efba85a737842892e))
+
+
+### BREAKING CHANGES
+
+* requires APIM 4.6+
+
 ## [3.0.5](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/3.0.4...3.0.5) (2024-08-29)
 
 

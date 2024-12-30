@@ -37,9 +37,10 @@ $ curl -H "Authorization: Bearer |accessToken|" \
 
 |===
 | Plugin version | APIM version
+| 4.x            | 4.6.x to latest
+| 3.x            | 4.0.x to 4.5.x
+| 2.x            | 3.20.x
 | 1.x            | Up to 3.19.x
-| 2.0.x          | 3.20.x
-| 3.x            | 4.x to latest
 |===
 
 == Attributes
