@@ -156,6 +156,7 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
             })
             .andThen(
                 Completable.fromRunnable(() -> {
+                    ctx.metrics().setUser(ctx.getAttribute(ATTR_USER));
                     if (!oAuth2PolicyConfiguration.isPropagateAuthHeader()) {
                         ctx.request().headers().remove(HttpHeaderNames.AUTHORIZATION);
                     }
@@ -296,7 +297,6 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
         String user = tokenIntrospectionResult.extractUser(oauth2Resource.getUserClaim());
         if (user != null && !user.trim().isEmpty()) {
             ctx.setAttribute(ATTR_USER, user);
-            ctx.metrics().setUser(user);
         }
 
         List<String> scopes = tokenIntrospectionResult.extractScopes(oauth2Resource.getScopeSeparator());
