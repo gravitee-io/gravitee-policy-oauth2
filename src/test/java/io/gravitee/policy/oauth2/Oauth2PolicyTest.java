@@ -138,6 +138,9 @@ class Oauth2PolicyTest {
     @Mock
     private Cache cache;
 
+    @Mock
+    private Metrics metrics;
+
     private Oauth2Policy cut;
 
     @BeforeEach
@@ -151,6 +154,9 @@ class Oauth2PolicyTest {
 
         lenient().when(ctx.response()).thenReturn(response);
         lenient().when(response.headers()).thenReturn(responseHeaders);
+
+        lenient().when(ctx.metrics()).thenReturn(metrics);
+        lenient().when(ctx.getAttribute(ATTR_USER)).thenReturn("my-user");
 
         cut = new Oauth2Policy(configuration);
     }
