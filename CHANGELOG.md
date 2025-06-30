@@ -1,3 +1,10 @@
+## [4.0.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/4.0.0...4.0.1) (2025-06-30)
+
+
+### Bug Fixes
+
+* condition `.metrics()` use only if ctx is http ([600012a](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/600012a6b72a51290f5b8876feffc7aa41aa1e00))
+
 # [4.0.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/3.0.5...4.0.0) (2024-12-30)
 
 
