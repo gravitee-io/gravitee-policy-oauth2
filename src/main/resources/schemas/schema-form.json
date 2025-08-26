@@ -17,7 +17,8 @@
                 "uiType": "resource-type",
                 "uiTypeProps": {
                     "resourceType": "oauth2"
-                }
+                },
+                "el": true
             }
         },
         "oauthCacheResource": {
