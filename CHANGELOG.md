@@ -1,3 +1,10 @@
+# [4.1.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/4.0.1...4.1.0) (2025-08-27)
+
+
+### Features
+
+* update form to provide el metadata ([7ff17ef](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/7ff17ef74a53918ec9bc1e98e6ada72990c8811b))
+
 ## [4.0.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/4.0.0...4.0.1) (2025-06-30)
 
 
