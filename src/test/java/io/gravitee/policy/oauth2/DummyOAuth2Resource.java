@@ -18,8 +18,10 @@ package io.gravitee.policy.oauth2;
 import io.gravitee.gateway.api.handler.Handler;
 import io.gravitee.resource.api.ResourceConfiguration;
 import io.gravitee.resource.oauth2.api.OAuth2Resource;
+import io.gravitee.resource.oauth2.api.OAuth2ResourceMetadata;
 import io.gravitee.resource.oauth2.api.OAuth2Response;
 import io.gravitee.resource.oauth2.api.openid.UserInfoResponse;
+import java.util.List;
 
 /**
  * @author GraviteeSource Team
@@ -54,6 +56,11 @@ public class DummyOAuth2Resource extends OAuth2Resource<DummyOAuth2Resource.Dumm
 
     @Override
     public void userInfo(String accessToken, Handler<UserInfoResponse> responseHandler) {}
+
+    @Override
+    public OAuth2ResourceMetadata getProtectedResourceMetadata(String protectedResourceUri) {
+        return new OAuth2ResourceMetadata(protectedResourceUri, List.of("https://some.keycloak.com/realms/test"), List.of("read", "write"));
+    }
 
     public static class DummyOAuth2ResourceConfiguration implements ResourceConfiguration {}
 }

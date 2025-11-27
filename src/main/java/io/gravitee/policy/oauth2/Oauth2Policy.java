@@ -20,11 +20,14 @@ import static io.gravitee.common.http.HttpStatusCode.UNAUTHORIZED_401;
 import static io.gravitee.gateway.api.ExecutionContext.ATTR_USER;
 import static io.gravitee.gateway.api.ExecutionContext.ATTR_USER_ROLES;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.gravitee.common.security.jwt.LazyJWT;
+import io.gravitee.gateway.api.buffer.Buffer;
 import io.gravitee.gateway.api.http.HttpHeaderNames;
 import io.gravitee.gateway.reactive.api.ExecutionFailure;
 import io.gravitee.gateway.reactive.api.context.base.BaseExecutionContext;
 import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
+import io.gravitee.gateway.reactive.api.context.http.HttpPlainRequest;
 import io.gravitee.gateway.reactive.api.context.kafka.KafkaConnectionContext;
 import io.gravitee.gateway.reactive.api.policy.SecurityToken;
 import io.gravitee.gateway.reactive.api.policy.http.HttpSecurityPolicy;
@@ -41,6 +44,7 @@ import io.gravitee.resource.cache.api.Cache;
 import io.gravitee.resource.cache.api.CacheResource;
 import io.gravitee.resource.cache.api.Element;
 import io.gravitee.resource.oauth2.api.OAuth2Resource;
+import io.gravitee.resource.oauth2.api.OAuth2ResourceMetadata;
 import io.gravitee.resource.oauth2.api.OAuth2Response;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.Maybe;
@@ -212,6 +216,43 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
                 return Completable.complete();
             })
             .doAfterTerminate(() -> ctx.removeInternalAttribute(ATTR_INTERNAL_TOKEN_INTROSPECTION_RESULT));
+    }
+
+    @Override
+    public Single<Boolean> wwwAuthenticate(final HttpPlainExecutionContext ctx) {
+        if (oAuth2PolicyConfiguration.isAddWwwAuthenticateHeader()) {
+            String resourceMetadata = contextPathUrl(ctx.request()) + ".well-known/oauth-protected-resource";
+            ctx.response().headers().set(HttpHeaderNames.WWW_AUTHENTICATE, "Bearer resource_metadata=\"" + resourceMetadata + "\"");
+            return Single.just(true);
+        }
+        return Single.just(false);
+    }
+
+    static String contextPathUrl(HttpPlainRequest request) {
+        String url = request.scheme() + "://" + request.originalHost();
+        if (request.contextPath().endsWith("/")) {
+            return url + request.contextPath();
+        } else {
+            return url + request.contextPath() + "/";
+        }
+    }
+
+    @Override
+    public Single<Boolean> onWellKnown(final HttpPlainExecutionContext ctx) {
+        if (ctx.request().path().endsWith(".well-known/oauth-protected-resource")) {
+            final OAuth2Resource<?> oauth2Resource = getOauth2Resource(ctx);
+            String protectedResourceUri = contextPathUrl(ctx.request());
+            OAuth2ResourceMetadata resourceMetadata = oauth2Resource.getProtectedResourceMetadata(protectedResourceUri);
+            try {
+                String message = MAPPER.writeValueAsString(resourceMetadata);
+                ctx.response().body(Buffer.buffer(message));
+                return Single.just(true);
+            } catch (JsonProcessingException e) {
+                log.error("Unable to serialize OAuth2 resource metadata", e);
+                return Single.just(false);
+            }
+        }
+        return Single.just(false);
     }
 
     private Maybe<SecurityToken> getSecurityTokenFromContext(BaseExecutionContext ctx) {

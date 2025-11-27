@@ -30,6 +30,7 @@ import static io.gravitee.policy.oauth2.Oauth2Policy.OAUTH2_MISSING_SERVER_KEY;
 import static io.gravitee.policy.oauth2.Oauth2Policy.OAUTH2_SERVER_UNAVAILABLE_KEY;
 import static io.gravitee.policy.v3.oauth2.Oauth2PolicyV3.OAUTH2_TEMPORARILY_UNAVAILABLE_MESSAGE;
 import static io.gravitee.policy.v3.oauth2.Oauth2PolicyV3.OAUTH2_UNAUTHORIZED_MESSAGE;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -60,6 +61,7 @@ import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
 import io.gravitee.gateway.reactive.api.context.http.HttpPlainRequest;
 import io.gravitee.gateway.reactive.api.context.http.HttpPlainResponse;
 import io.gravitee.gateway.reactive.api.policy.SecurityToken;
+import io.gravitee.gateway.reactive.core.context.AbstractRequest;
 import io.gravitee.gateway.reactive.core.context.DefaultExecutionContext;
 import io.gravitee.gateway.reactive.core.context.MutableRequest;
 import io.gravitee.gateway.reactive.core.context.MutableResponse;
@@ -82,9 +84,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -582,6 +585,20 @@ class Oauth2PolicyTest {
 
         // ensure introspection as been made only once
         verify(oAuth2Resource, times(1)).introspect(any(), any());
+    }
+
+    @ParameterizedTest
+    @CsvSource({ "http, localhost:8082, /test/", "http, localhost:8082, /test" })
+    public void testContextPathUrl(String schemeParam, String originalHostParam, String contextPathParam) {
+        HttpPlainRequest request = new AbstractRequest() {
+            {
+                this.scheme = schemeParam;
+                this.originalHost = originalHostParam;
+                this.contextPath = contextPathParam;
+            }
+        };
+        String contextPathUrl = Oauth2Policy.contextPathUrl(request);
+        assertThat(contextPathUrl).isEqualTo("http://localhost:8082/test/");
     }
 
     private String prepareToken() {
