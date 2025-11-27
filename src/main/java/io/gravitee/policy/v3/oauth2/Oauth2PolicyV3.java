@@ -81,7 +81,7 @@ public class Oauth2PolicyV3 {
     public static final String OAUTH2_UNAUTHORIZED_MESSAGE = "Unauthorized";
     public static final String OAUTH2_TEMPORARILY_UNAVAILABLE_MESSAGE = "temporarily_unavailable";
 
-    static final ObjectMapper MAPPER = new ObjectMapper();
+    protected static final ObjectMapper MAPPER = new ObjectMapper();
 
     protected final OAuth2PolicyConfiguration oAuth2PolicyConfiguration;
 

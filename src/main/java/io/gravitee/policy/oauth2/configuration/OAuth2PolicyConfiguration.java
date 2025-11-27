@@ -18,11 +18,15 @@ package io.gravitee.policy.oauth2.configuration;
 import io.gravitee.policy.api.PolicyConfiguration;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
  */
+@Getter
+@Setter
 public class OAuth2PolicyConfiguration implements PolicyConfiguration {
 
     private String oauthResource;
@@ -32,60 +36,5 @@ public class OAuth2PolicyConfiguration implements PolicyConfiguration {
     private List<String> requiredScopes = new ArrayList<>();
     private boolean modeStrict = true;
     private boolean propagateAuthHeader = true;
-
-    public String getOauthResource() {
-        return oauthResource;
-    }
-
-    public void setOauthResource(String oauthResource) {
-        this.oauthResource = oauthResource;
-    }
-
-    public boolean isExtractPayload() {
-        return extractPayload;
-    }
-
-    public void setExtractPayload(boolean extractPayload) {
-        this.extractPayload = extractPayload;
-    }
-
-    public boolean isCheckRequiredScopes() {
-        return checkRequiredScopes;
-    }
-
-    public void setCheckRequiredScopes(boolean checkRequiredScopes) {
-        this.checkRequiredScopes = checkRequiredScopes;
-    }
-
-    public List<String> getRequiredScopes() {
-        return requiredScopes;
-    }
-
-    public void setRequiredScopes(List<String> requiredScopes) {
-        this.requiredScopes = requiredScopes;
-    }
-
-    public boolean isModeStrict() {
-        return modeStrict;
-    }
-
-    public void setModeStrict(boolean modeStrict) {
-        this.modeStrict = modeStrict;
-    }
-
-    public boolean isPropagateAuthHeader() {
-        return propagateAuthHeader;
-    }
-
-    public void setPropagateAuthHeader(boolean propagateAuthHeader) {
-        this.propagateAuthHeader = propagateAuthHeader;
-    }
-
-    public String getOauthCacheResource() {
-        return oauthCacheResource;
-    }
-
-    public void setOauthCacheResource(String oauthCacheResource) {
-        this.oauthCacheResource = oauthCacheResource;
-    }
+    private boolean addWwwAuthenticateHeader;
 }

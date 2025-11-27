@@ -51,6 +51,12 @@
             "type": "boolean",
             "default": false
         },
+        "enableWwwAuthenticate": {
+            "title": "Enable WWW-Authenticate",
+            "description": "Add the WWW-Authenticate header when no token is provided by the API caller and receives a 401 response",
+            "type": "boolean",
+            "default": true
+        },
         "requiredScopes": {
             "type": "array",
             "title": "Required scopes",
