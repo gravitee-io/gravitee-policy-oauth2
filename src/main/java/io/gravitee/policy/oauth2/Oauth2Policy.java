@@ -153,11 +153,10 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
 
     @Override
     public Completable onRequest(final HttpPlainExecutionContext ctx) {
-        return Completable
-            .defer(() -> {
-                log.debug("Read access_token from request {}", ctx.request().id());
-                return handleSecurity(ctx);
-            })
+        return Completable.defer(() -> {
+            log.debug("Read access_token from request {}", ctx.request().id());
+            return handleSecurity(ctx);
+        })
             .andThen(
                 Completable.fromRunnable(() -> {
                     ctx.metrics().setUser(ctx.getAttribute(ATTR_USER));
@@ -306,20 +305,18 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
      * @return JWT token, or empty if no token found.
      */
     private Maybe<String> fetchJWTToken(BaseExecutionContext ctx, boolean canUseCache) {
-        return Maybe
-            .defer(() -> {
-                LazyJWT jwt = canUseCache ? ctx.getAttribute(CONTEXT_ATTRIBUTE_JWT) : null;
-                if (jwt == null) {
-                    Optional<String> token = TokenExtractor.extract(ctx);
-                    if (token.isEmpty()) {
-                        return Maybe.empty();
-                    }
-                    jwt = new LazyJWT(token.get());
-                    ctx.setAttribute(CONTEXT_ATTRIBUTE_JWT, jwt);
+        return Maybe.defer(() -> {
+            LazyJWT jwt = canUseCache ? ctx.getAttribute(CONTEXT_ATTRIBUTE_JWT) : null;
+            if (jwt == null) {
+                Optional<String> token = TokenExtractor.extract(ctx);
+                if (token.isEmpty()) {
+                    return Maybe.empty();
                 }
-                return Maybe.just(jwt.getToken());
-            })
-            .doOnSuccess(token -> ctx.setAttribute(CONTEXT_ATTRIBUTE_TOKEN, token));
+                jwt = new LazyJWT(token.get());
+                ctx.setAttribute(CONTEXT_ATTRIBUTE_JWT, jwt);
+            }
+            return Maybe.just(jwt.getToken());
+        }).doOnSuccess(token -> ctx.setAttribute(CONTEXT_ATTRIBUTE_TOKEN, token));
     }
 
     private Completable validateOAuth2Payload(
@@ -399,19 +396,18 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
     }
 
     private Completable introspectAndValidateAccessToken(BaseExecutionContext ctx, String accessToken, OAuth2Resource<?> oauth2Resource) {
-        return introspectAccessToken(ctx, accessToken, oauth2Resource)
-            .flatMapCompletable(introspectionResult -> {
-                ctx.setInternalAttribute(ATTR_INTERNAL_TOKEN_INTROSPECTION_RESULT, introspectionResult);
-                if (introspectionResult.isSuccess()) {
-                    return validateOAuth2Payload(ctx, introspectionResult, oauth2Resource);
+        return introspectAccessToken(ctx, accessToken, oauth2Resource).flatMapCompletable(introspectionResult -> {
+            ctx.setInternalAttribute(ATTR_INTERNAL_TOKEN_INTROSPECTION_RESULT, introspectionResult);
+            if (introspectionResult.isSuccess()) {
+                return validateOAuth2Payload(ctx, introspectionResult, oauth2Resource);
+            } else {
+                if (introspectionResult.getOauth2ResponseThrowable() == null) {
+                    return interruptWith(ctx, Oauth2Failure.OAUTH2_INVALID_ACCESS_TOKEN_FAILURE);
                 } else {
-                    if (introspectionResult.getOauth2ResponseThrowable() == null) {
-                        return interruptWith(ctx, Oauth2Failure.OAUTH2_INVALID_ACCESS_TOKEN_FAILURE);
-                    } else {
-                        return interruptWith(ctx, Oauth2Failure.OAUTH2_SERVER_UNAVAILABLE_FAILURE);
-                    }
+                    return interruptWith(ctx, Oauth2Failure.OAUTH2_SERVER_UNAVAILABLE_FAILURE);
                 }
-            });
+            }
+        });
     }
 
     /**

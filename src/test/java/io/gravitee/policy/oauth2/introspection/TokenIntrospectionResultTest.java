@@ -66,8 +66,9 @@ public class TokenIntrospectionResultTest {
     @Test
     public void should_contain_data_from_oauth2_response_payload() {
         when(oAuth2Response.isSuccess()).thenReturn(true);
-        when(oAuth2Response.getPayload())
-            .thenReturn("{\"client_id\":\"my-test-client-id\", \"sub\":\"my-test-user\", \"exp\":\"123456789\"}");
+        when(oAuth2Response.getPayload()).thenReturn(
+            "{\"client_id\":\"my-test-client-id\", \"sub\":\"my-test-user\", \"exp\":\"123456789\"}"
+        );
 
         TokenIntrospectionResult result = new TokenIntrospectionResult(oAuth2Response);
 

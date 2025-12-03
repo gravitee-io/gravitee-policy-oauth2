@@ -100,12 +100,12 @@ class Oauth2PolicyV3Test {
 
         policy.onRequest(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
 
-        verify(mockPolicychain)
-            .failWith(
-                argThat(result ->
+        verify(mockPolicychain).failWith(
+            argThat(
+                result ->
                     result.statusCode() == HttpStatusCode.UNAUTHORIZED_401 && Oauth2PolicyV3.OAUTH2_MISSING_SERVER_KEY.equals(result.key())
-                )
-            );
+            )
+        );
     }
 
     @Test
@@ -115,19 +115,20 @@ class Oauth2PolicyV3Test {
         when(mockRequest.headers()).thenReturn(HttpHeaders.create());
         when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
         when(oAuth2PolicyConfiguration.getOauthResource()).thenReturn("oauth2");
-        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class))
-            .thenReturn(customOAuth2Resource);
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(
+            customOAuth2Resource
+        );
         when(mockResponse.headers()).thenReturn(HttpHeaders.create());
         when(mockExecutionContext.getTemplateEngine()).thenReturn(templateEngine);
 
         policy.onRequest(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
 
-        verify(mockPolicychain)
-            .failWith(
-                argThat(result ->
+        verify(mockPolicychain).failWith(
+            argThat(
+                result ->
                     result.statusCode() == HttpStatusCode.UNAUTHORIZED_401 && Oauth2PolicyV3.OAUTH2_MISSING_HEADER_KEY.equals(result.key())
-                )
-            );
+            )
+        );
     }
 
     @Test
@@ -138,20 +139,21 @@ class Oauth2PolicyV3Test {
 
         when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
         when(oAuth2PolicyConfiguration.getOauthResource()).thenReturn("oauth2");
-        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class))
-            .thenReturn(customOAuth2Resource);
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(
+            customOAuth2Resource
+        );
         when(mockRequest.headers()).thenReturn(headers);
         when(mockResponse.headers()).thenReturn(HttpHeaders.create());
         when(mockExecutionContext.getTemplateEngine()).thenReturn(templateEngine);
 
         policy.onRequest(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
 
-        verify(mockPolicychain)
-            .failWith(
-                argThat(result ->
+        verify(mockPolicychain).failWith(
+            argThat(
+                result ->
                     result.statusCode() == HttpStatusCode.UNAUTHORIZED_401 && Oauth2PolicyV3.OAUTH2_MISSING_HEADER_KEY.equals(result.key())
-                )
-            );
+            )
+        );
     }
 
     @Test
@@ -162,21 +164,22 @@ class Oauth2PolicyV3Test {
 
         when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
         when(oAuth2PolicyConfiguration.getOauthResource()).thenReturn("oauth2");
-        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class))
-            .thenReturn(customOAuth2Resource);
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(
+            customOAuth2Resource
+        );
         when(mockRequest.headers()).thenReturn(headers);
         when(mockResponse.headers()).thenReturn(HttpHeaders.create());
         when(mockExecutionContext.getTemplateEngine()).thenReturn(templateEngine);
 
         policy.onRequest(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
 
-        verify(mockPolicychain)
-            .failWith(
-                argThat(result ->
+        verify(mockPolicychain).failWith(
+            argThat(
+                result ->
                     result.statusCode() == HttpStatusCode.UNAUTHORIZED_401 &&
                     Oauth2PolicyV3.OAUTH2_MISSING_ACCESS_TOKEN_KEY.equals(result.key())
-                )
-            );
+            )
+        );
     }
 
     @Test
@@ -189,8 +192,9 @@ class Oauth2PolicyV3Test {
         when(mockRequest.headers()).thenReturn(headers);
         when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
         when(oAuth2PolicyConfiguration.getOauthResource()).thenReturn("oauth2");
-        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class))
-            .thenReturn(customOAuth2Resource);
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(
+            customOAuth2Resource
+        );
         when(mockExecutionContext.getTemplateEngine()).thenReturn(templateEngine);
 
         policy.onRequest(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
@@ -209,11 +213,13 @@ class Oauth2PolicyV3Test {
         when(mockRequest.headers()).thenReturn(headers);
         when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
         when(oAuth2PolicyConfiguration.getOauthResource()).thenReturn("oauth2");
-        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class))
-            .thenReturn(customOAuth2Resource);
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(
+            customOAuth2Resource
+        );
         when(oAuth2PolicyConfiguration.getOauthCacheResource()).thenReturn("cache");
-        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthCacheResource(), CacheResource.class))
-            .thenReturn(customCacheResource);
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthCacheResource(), CacheResource.class)).thenReturn(
+            customCacheResource
+        );
         Element cacheElement = mock(Element.class);
         JsonNode jsonNode = readJsonResource("/io/gravitee/policy/oauth2/oauth2-response07.json");
         when(cacheElement.value()).thenReturn(jsonNode.toPrettyString());
@@ -239,8 +245,9 @@ class Oauth2PolicyV3Test {
         when(mockRequest.headers()).thenReturn(headers);
         when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
         when(oAuth2PolicyConfiguration.getOauthResource()).thenReturn("oauth2");
-        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class))
-            .thenReturn(customOAuth2Resource);
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(
+            customOAuth2Resource
+        );
         when(mockExecutionContext.getTemplateEngine()).thenReturn(templateEngine);
 
         policy.onRequest(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
@@ -359,13 +366,13 @@ class Oauth2PolicyV3Test {
         verify(mockExecutionContext, never()).setAttribute(eq(Oauth2PolicyV3.CONTEXT_ATTRIBUTE_CLIENT_ID), anyString());
         verify(httpHeaders).add(eq(HttpHeaderNames.WWW_AUTHENTICATE), anyString());
 
-        verify(mockPolicychain)
-            .failWith(
-                argThat(result ->
+        verify(mockPolicychain).failWith(
+            argThat(
+                result ->
                     result.statusCode() == HttpStatusCode.UNAUTHORIZED_401 &&
                     Oauth2PolicyV3.OAUTH2_INVALID_ACCESS_TOKEN_KEY.equals(result.key())
-                )
-            );
+            )
+        );
     }
 
     @Test
@@ -381,13 +388,13 @@ class Oauth2PolicyV3Test {
         verify(mockExecutionContext, never()).setAttribute(eq(Oauth2PolicyV3.CONTEXT_ATTRIBUTE_CLIENT_ID), anyString());
         verify(httpHeaders).add(eq(HttpHeaderNames.WWW_AUTHENTICATE), anyString());
 
-        verify(mockPolicychain)
-            .failWith(
-                argThat(result ->
+        verify(mockPolicychain).failWith(
+            argThat(
+                result ->
                     result.statusCode() == HttpStatusCode.SERVICE_UNAVAILABLE_503 &&
                     Oauth2PolicyV3.OAUTH2_SERVER_UNAVAILABLE_KEY.equals(result.key())
-                )
-            );
+            )
+        );
     }
 
     @Test
@@ -403,13 +410,13 @@ class Oauth2PolicyV3Test {
         verify(mockExecutionContext, never()).setAttribute(eq(Oauth2PolicyV3.CONTEXT_ATTRIBUTE_CLIENT_ID), anyString());
         verify(httpHeaders).add(eq(HttpHeaderNames.WWW_AUTHENTICATE), anyString());
 
-        verify(mockPolicychain)
-            .failWith(
-                argThat(result ->
+        verify(mockPolicychain).failWith(
+            argThat(
+                result ->
                     result.statusCode() == HttpStatusCode.UNAUTHORIZED_401 &&
                     Oauth2PolicyV3.OAUTH2_INVALID_SERVER_RESPONSE_KEY.equals(result.key())
-                )
-            );
+            )
+        );
     }
 
     @Test
@@ -420,8 +427,9 @@ class Oauth2PolicyV3Test {
         when(oAuth2PolicyConfiguration.isPropagateAuthHeader()).thenReturn(true);
         when(oAuth2PolicyConfiguration.getOauthResource()).thenReturn("oauth2");
         when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
-        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class))
-            .thenReturn(customOAuth2Resource);
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(
+            customOAuth2Resource
+        );
         when(customOAuth2Resource.getScopeSeparator()).thenReturn(DEFAULT_OAUTH_SCOPE_SEPARATOR);
         Handler<OAuth2Response> handler = policy.handleResponse(mockPolicychain, mockRequest, mockResponse, mockExecutionContext, null);
 
@@ -440,8 +448,9 @@ class Oauth2PolicyV3Test {
 
         Oauth2PolicyV3 policy = new Oauth2PolicyV3(oAuth2PolicyConfiguration);
         when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
-        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class))
-            .thenReturn(customOAuth2Resource);
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(
+            customOAuth2Resource
+        );
         when(customOAuth2Resource.getScopeSeparator()).thenReturn(DEFAULT_OAUTH_SCOPE_SEPARATOR);
 
         Handler<OAuth2Response> handler = policy.handleResponse(mockPolicychain, mockRequest, mockResponse, mockExecutionContext, null);
@@ -451,18 +460,17 @@ class Oauth2PolicyV3Test {
 
         verify(mockExecutionContext).setAttribute(Oauth2PolicyV3.CONTEXT_ATTRIBUTE_CLIENT_ID, "my-client-id");
         verify(mockExecutionContext).setAttribute(Oauth2PolicyV3.CONTEXT_ATTRIBUTE_OAUTH_PAYLOAD, payload);
-        verify(mockExecutionContext)
-            .setAttribute(
-                eq(ExecutionContext.ATTR_USER_ROLES),
-                argThat(
-                    new ArgumentMatcher<List<String>>() {
-                        @Override
-                        public boolean matches(List<String> scopes) {
-                            return scopes.get(0).equals("read") && scopes.get(1).equals("write") && scopes.get(2).equals("admin");
-                        }
+        verify(mockExecutionContext).setAttribute(
+            eq(ExecutionContext.ATTR_USER_ROLES),
+            argThat(
+                new ArgumentMatcher<List<String>>() {
+                    @Override
+                    public boolean matches(List<String> scopes) {
+                        return scopes.get(0).equals("read") && scopes.get(1).equals("write") && scopes.get(2).equals("admin");
                     }
-                )
-            );
+                }
+            )
+        );
         verify(mockPolicychain).doNext(mockRequest, mockResponse);
     }
 
@@ -471,8 +479,9 @@ class Oauth2PolicyV3Test {
         when(oAuth2PolicyConfiguration.isPropagateAuthHeader()).thenReturn(true);
         when(oAuth2PolicyConfiguration.isCheckRequiredScopes()).thenReturn(true);
         when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
-        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class))
-            .thenReturn(customOAuth2Resource);
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(
+            customOAuth2Resource
+        );
         when(customOAuth2Resource.getScopeSeparator()).thenReturn(DEFAULT_OAUTH_SCOPE_SEPARATOR);
 
         Oauth2PolicyV3 policy = new Oauth2PolicyV3(oAuth2PolicyConfiguration);
@@ -490,8 +499,9 @@ class Oauth2PolicyV3Test {
         when(oAuth2PolicyConfiguration.isPropagateAuthHeader()).thenReturn(true);
         when(oAuth2PolicyConfiguration.isCheckRequiredScopes()).thenReturn(true);
         when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
-        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class))
-            .thenReturn(customOAuth2Resource);
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(
+            customOAuth2Resource
+        );
         when(customOAuth2Resource.getScopeSeparator()).thenReturn(DEFAULT_OAUTH_SCOPE_SEPARATOR);
 
         Cache cache = mock(Cache.class);
@@ -519,8 +529,9 @@ class Oauth2PolicyV3Test {
         when(oAuth2PolicyConfiguration.isPropagateAuthHeader()).thenReturn(false);
         when(oAuth2PolicyConfiguration.isCheckRequiredScopes()).thenReturn(true);
         when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
-        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class))
-            .thenReturn(customOAuth2Resource);
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(
+            customOAuth2Resource
+        );
         when(customOAuth2Resource.getScopeSeparator()).thenReturn(DEFAULT_OAUTH_SCOPE_SEPARATOR);
         when(mockRequest.headers()).thenReturn(HttpHeaders.create().set("Authorization", "Bearer " + UUID.randomUUID()));
 
@@ -553,8 +564,9 @@ class Oauth2PolicyV3Test {
         when(oAuth2PolicyConfiguration.isCheckRequiredScopes()).thenReturn(true);
         when(oAuth2PolicyConfiguration.getRequiredScopes()).thenReturn(Collections.singletonList("super-admin"));
         when(mockExecutionContext.getComponent(ResourceManager.class)).thenReturn(resourceManager);
-        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class))
-            .thenReturn(customOAuth2Resource);
+        when(resourceManager.getResource(oAuth2PolicyConfiguration.getOauthResource(), OAuth2Resource.class)).thenReturn(
+            customOAuth2Resource
+        );
         when(customOAuth2Resource.getScopeSeparator()).thenReturn(DEFAULT_OAUTH_SCOPE_SEPARATOR);
 
         Oauth2PolicyV3 policy = new Oauth2PolicyV3(oAuth2PolicyConfiguration);
@@ -563,13 +575,13 @@ class Oauth2PolicyV3Test {
         String payload = readResource("/io/gravitee/policy/oauth2/oauth2-response04.json");
         handler.handle(new OAuth2Response(true, payload));
 
-        verify(mockPolicychain)
-            .failWith(
-                argThat(result ->
+        verify(mockPolicychain).failWith(
+            argThat(
+                result ->
                     result.statusCode() == HttpStatusCode.UNAUTHORIZED_401 &&
                     Oauth2PolicyV3.OAUTH2_INSUFFICIENT_SCOPE_KEY.equals(result.key())
-                )
-            );
+            )
+        );
     }
 
     private JsonNode readJsonResource(String resource) throws IOException {

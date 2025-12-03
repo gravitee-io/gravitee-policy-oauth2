@@ -254,9 +254,9 @@ class Oauth2PolicyTest {
         when(oAuth2Response.getThrowable()).thenReturn(new RuntimeException(MOCK_INTROSPECT_EXCEPTION));
 
         doAnswer(i -> {
-                i.<Handler<OAuth2Response>>getArgument(1).handle(oAuth2Response);
-                return null;
-            })
+            i.<Handler<OAuth2Response>>getArgument(1).handle(oAuth2Response);
+            return null;
+        })
             .when(oAuth2Resource)
             .introspect(eq(token), any(Handler.class));
 
@@ -434,14 +434,13 @@ class Oauth2PolicyTest {
         obs.assertComplete();
 
         verify(ctx).setAttribute(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID, "my-client-id");
-        verify(cache)
-            .put(
-                argThat(e -> {
-                    assertEquals(token, e.key());
-                    assertEquals(payload, e.value());
-                    return true;
-                })
-            );
+        verify(cache).put(
+            argThat(e -> {
+                assertEquals(token, e.key());
+                assertEquals(payload, e.value());
+                return true;
+            })
+        );
     }
 
     private void prepareCacheResource() {
@@ -465,15 +464,14 @@ class Oauth2PolicyTest {
         obs.assertComplete();
 
         verify(ctx).setAttribute(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID, "my-client-id");
-        verify(cache)
-            .put(
-                argThat(e -> {
-                    assertEquals(token, e.key());
-                    assertEquals(payload, e.value());
-                    assertTrue(e.timeToLive() > 0);
-                    return true;
-                })
-            );
+        verify(cache).put(
+            argThat(e -> {
+                assertEquals(token, e.key());
+                assertEquals(payload, e.value());
+                assertTrue(e.timeToLive() > 0);
+                return true;
+            })
+        );
     }
 
     @Test
@@ -535,8 +533,8 @@ class Oauth2PolicyTest {
         final TestObserver<SecurityToken> obs = cut.extractSecurityToken(ctx).test();
 
         obs.assertComplete().assertValueCount(1);
-        obs.assertValue(securityToken ->
-            securityToken.getTokenType().equals(SecurityToken.TokenType.CLIENT_ID.name()) && securityToken.isInvalid()
+        obs.assertValue(
+            securityToken -> securityToken.getTokenType().equals(SecurityToken.TokenType.CLIENT_ID.name()) && securityToken.isInvalid()
         );
     }
 
@@ -562,9 +560,10 @@ class Oauth2PolicyTest {
         final TestObserver<SecurityToken> obs = cut.extractSecurityToken(ctx).test();
 
         obs.assertComplete().assertValueCount(1);
-        obs.assertValue(securityToken ->
-            securityToken.getTokenType().equals(SecurityToken.TokenType.CLIENT_ID.name()) &&
-            securityToken.getTokenValue().equals("my-test-client-id")
+        obs.assertValue(
+            securityToken ->
+                securityToken.getTokenType().equals(SecurityToken.TokenType.CLIENT_ID.name()) &&
+                securityToken.getTokenValue().equals("my-test-client-id")
         );
         verify(ctx).setAttribute(eq(CONTEXT_ATTRIBUTE_JWT), Mockito.<LazyJWT>argThat(jwt -> token.equals(jwt.getToken())));
     }
@@ -622,9 +621,9 @@ class Oauth2PolicyTest {
         lenient().when(oAuth2Response.getPayload()).thenReturn(payload);
 
         doAnswer(i -> {
-                i.<Handler<OAuth2Response>>getArgument(1).handle(oAuth2Response);
-                return null;
-            })
+            i.<Handler<OAuth2Response>>getArgument(1).handle(oAuth2Response);
+            return null;
+        })
             .when(oAuth2Resource)
             .introspect(eq(token), any(Handler.class));
     }
@@ -636,24 +635,23 @@ class Oauth2PolicyTest {
         lenient().when(oAuth2Response.getThrowable()).thenReturn(throwable);
 
         doAnswer(i -> {
-                i.<Handler<OAuth2Response>>getArgument(1).handle(oAuth2Response);
-                return null;
-            })
+            i.<Handler<OAuth2Response>>getArgument(1).handle(oAuth2Response);
+            return null;
+        })
             .when(oAuth2Resource)
             .introspect(eq(token), any(Handler.class));
     }
 
     private void verifyInterruptWith(int httpStatus, String key, final String message) {
-        verify(ctx)
-            .interruptWith(
-                argThat(failure -> {
-                    assertEquals(httpStatus, failure.statusCode());
-                    assertEquals(message, failure.message());
-                    assertEquals(key, failure.key());
-                    assertNull(failure.parameters());
-                    return true;
-                })
-            );
+        verify(ctx).interruptWith(
+            argThat(failure -> {
+                assertEquals(httpStatus, failure.statusCode());
+                assertEquals(message, failure.message());
+                assertEquals(key, failure.key());
+                assertNull(failure.parameters());
+                return true;
+            })
+        );
     }
 
     private ObjectNode readJsonResource(String resource) throws IOException {

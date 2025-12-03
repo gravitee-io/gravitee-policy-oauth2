@@ -148,7 +148,8 @@ public class Oauth2PolicyV4EmulationEngineIntegrationTest extends AbstractPolicy
 
         Single<HttpClientResponse> httpClientResponse = client
             .rxRequest(HttpMethod.GET, "/test")
-            .flatMap(request -> request.putHeader("Authorization", "Bearer " + DummyOAuth2Resource.TOKEN_SUCCESS_WITHOUT_CLIENT_ID).rxSend()
+            .flatMap(request ->
+                request.putHeader("Authorization", "Bearer " + DummyOAuth2Resource.TOKEN_SUCCESS_WITHOUT_CLIENT_ID).rxSend()
             );
 
         verifyNoInteractions(getBean(SubscriptionService.class));
@@ -250,8 +251,10 @@ public class Oauth2PolicyV4EmulationEngineIntegrationTest extends AbstractPolicy
     }
 
     private SecurityToken securityTokenMatcher(String clientId) {
-        return argThat(securityToken ->
-            securityToken.getTokenType().equals(SecurityToken.TokenType.CLIENT_ID.name()) && securityToken.getTokenValue().equals(clientId)
+        return argThat(
+            securityToken ->
+                securityToken.getTokenType().equals(SecurityToken.TokenType.CLIENT_ID.name()) &&
+                securityToken.getTokenValue().equals(clientId)
         );
     }
 }
