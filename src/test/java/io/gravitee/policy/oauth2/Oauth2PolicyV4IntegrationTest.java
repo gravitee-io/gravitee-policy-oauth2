@@ -78,8 +78,7 @@ public class Oauth2PolicyV4IntegrationTest extends AbstractPolicyTest<Oauth2Poli
             throw new RuntimeException(e);
         }
 
-        io.gravitee.definition.model.v4.plan.Plan oauth2Plan = io.gravitee.definition.model.v4.plan.Plan
-            .builder()
+        io.gravitee.definition.model.v4.plan.Plan oauth2Plan = io.gravitee.definition.model.v4.plan.Plan.builder()
             .id(PLAN_ID)
             .name("plan-name")
             .security(PlanSecurity.builder().type("oauth2").configuration(configurationString).build())
@@ -110,8 +109,9 @@ public class Oauth2PolicyV4IntegrationTest extends AbstractPolicyTest<Oauth2Poli
                 OAuth2ResourceMetadata resourceMetadata = mapper.readValue(body.toString(), OAuth2ResourceMetadata.class);
                 assertAll(
                     () ->
-                        assertThat(resourceMetadata.protectedResourceUri())
-                            .isEqualTo("http://localhost:" + gatewayConfig.httpPort() + "/test/"),
+                        assertThat(resourceMetadata.protectedResourceUri()).isEqualTo(
+                            "http://localhost:" + gatewayConfig.httpPort() + "/test/"
+                        ),
                     () -> assertThat(resourceMetadata.authorizationServers()).isEqualTo(List.of("https://some.keycloak.com/realms/test")),
                     () -> assertThat(resourceMetadata.scopesSupported()).containsExactlyInAnyOrder("read", "write")
                 );
