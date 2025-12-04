@@ -37,7 +37,8 @@ $ curl -H "Authorization: Bearer |accessToken|" \
 
 |===
 | Plugin version | APIM version
-| 4.x            | 4.6.x to latest
+| 5.x            | 4.10.x to latest
+| 4.x            | 4.6.x to 4.9.x
 | 3.x            | 4.0.x to 4.5.x
 | 2.x            | 3.20.x
 | 1.x            | Up to 3.19.x
@@ -118,8 +119,15 @@ APIM supports two types of authorization server:
 .^|requiredScopes
 ^.^|-
 |List of scopes to check to access the resource
-^.^|boolean
 ^.^|array of string
+^.^|empty list
+
+
+.^|addWwwAuthenticateHeader
+^.^|-
+|When the gateway returns a 401 response, add the WWW-Authenticate header with the resource metadata url if set to true.
+^.^|boolean
+^.^|false
 |===
 
 === Configuration example
