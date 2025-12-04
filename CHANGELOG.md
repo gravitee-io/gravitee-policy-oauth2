@@ -1,3 +1,20 @@
+# [5.0.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/4.1.0...5.0.0) (2025-12-04)
+
+
+### chore
+
+* bump gravitee-apim to 4.10.0-SNAPSHOT + gravitee-parent to 23.5.0 ([b776881](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/b776881cbe7a6aa68e40e45cf21171caaf33a072))
+
+
+### Features
+
+* add the wwwAuthenticate() and onWellKnown() default methods to HttpSecurityPolicy ([71c3677](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/71c3677c4bceb6a498675e1f48122a398114b785))
+
+
+### BREAKING CHANGES
+
+* requires APIM 4.10+
+
 # [4.1.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/4.0.1...4.1.0) (2025-08-27)
 
 
