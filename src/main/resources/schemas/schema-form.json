@@ -51,9 +51,9 @@
             "type": "boolean",
             "default": false
         },
-        "enableWwwAuthenticate": {
-            "title": "Enable WWW-Authenticate",
-            "description": "Add the WWW-Authenticate header when no token is provided by the API caller and receives a 401 response",
+        "addWwwAuthenticateHeader": {
+            "title": "Add the WWW-Authenticate header",
+            "description": "Add the WWW-Authenticate header with the 'resource_metadata' url when no token is provided by the API caller and he receives a 401 response",
             "type": "boolean",
             "default": true
         },
