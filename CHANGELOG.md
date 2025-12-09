@@ -1,3 +1,10 @@
+## [5.0.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.0.0...5.0.1) (2025-12-09)
+
+
+### Bug Fixes
+
+* change the www-authenticate label to addWwwAuthenticateHeader ([fe2e0fb](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/fe2e0fbd2688ce6d0d9d7a9a8d04cee2b26e9d9f))
+
 # [5.0.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/4.1.0...5.0.0) (2025-12-04)
 
 
