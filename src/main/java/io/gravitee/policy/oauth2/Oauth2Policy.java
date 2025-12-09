@@ -25,6 +25,7 @@ import io.gravitee.common.security.jwt.LazyJWT;
 import io.gravitee.gateway.api.buffer.Buffer;
 import io.gravitee.gateway.api.http.HttpHeaderNames;
 import io.gravitee.gateway.reactive.api.ExecutionFailure;
+import io.gravitee.gateway.reactive.api.context.InternalContextAttributes;
 import io.gravitee.gateway.reactive.api.context.base.BaseExecutionContext;
 import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
 import io.gravitee.gateway.reactive.api.context.http.HttpPlainRequest;
@@ -139,6 +140,11 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
     @Override
     public boolean requireSubscription() {
         return true;
+    }
+
+    @Override
+    public boolean requireSubscription(BaseExecutionContext context) {
+        return "MCP_PROXY".equals(context.getInternalAttribute(InternalContextAttributes.ATTR_INTERNAL_API_TYPE));
     }
 
     @Override
