@@ -1,3 +1,10 @@
+## [5.0.2](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.0.1...5.0.2) (2025-12-09)
+
+
+### Bug Fixes
+
+* remove the trailing slash for the OAuth2ResourceMetadata.protectedResourceUri ([01ed174](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/01ed17489149fd76cb2b301d0224a9836cd08006))
+
 ## [5.0.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.0.0...5.0.1) (2025-12-09)
 
 
