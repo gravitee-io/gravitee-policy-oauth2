@@ -241,6 +241,9 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
         if (ctx.request().path().endsWith(".well-known/oauth-protected-resource")) {
             final OAuth2Resource<?> oauth2Resource = getOauth2Resource(ctx);
             String protectedResourceUri = contextPathUrl(ctx.request());
+            protectedResourceUri = protectedResourceUri.endsWith("/")
+                ? protectedResourceUri.substring(0, protectedResourceUri.length() - 1)
+                : protectedResourceUri;
             OAuth2ResourceMetadata resourceMetadata = oauth2Resource.getProtectedResourceMetadata(protectedResourceUri);
             try {
                 String message = MAPPER.writeValueAsString(resourceMetadata);

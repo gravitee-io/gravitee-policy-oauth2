@@ -110,7 +110,7 @@ public class Oauth2PolicyV4IntegrationTest extends AbstractPolicyTest<Oauth2Poli
                 assertAll(
                     () ->
                         assertThat(resourceMetadata.protectedResourceUri()).isEqualTo(
-                            "http://localhost:" + gatewayConfig.httpPort() + "/test/"
+                            "http://localhost:" + gatewayConfig.httpPort() + "/test"
                         ),
                     () -> assertThat(resourceMetadata.authorizationServers()).isEqualTo(List.of("https://some.keycloak.com/realms/test")),
                     () -> assertThat(resourceMetadata.scopesSupported()).containsExactlyInAnyOrder("read", "write")
