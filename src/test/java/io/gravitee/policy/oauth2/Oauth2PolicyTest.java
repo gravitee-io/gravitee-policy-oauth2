@@ -18,6 +18,7 @@ package io.gravitee.policy.oauth2;
 import static io.gravitee.gateway.api.ExecutionContext.ATTR_USER;
 import static io.gravitee.gateway.api.ExecutionContext.ATTR_USER_ROLES;
 import static io.gravitee.gateway.api.http.HttpHeaderNames.AUTHORIZATION;
+import static io.gravitee.gateway.reactive.api.context.InternalContextAttributes.ATTR_INTERNAL_API_TYPE;
 import static io.gravitee.policy.oauth2.Oauth2Policy.CONTEXT_ATTRIBUTE_JWT;
 import static io.gravitee.policy.oauth2.Oauth2Policy.CONTEXT_ATTRIBUTE_OAUTH_ACCESS_TOKEN;
 import static io.gravitee.policy.oauth2.Oauth2Policy.CONTEXT_ATTRIBUTE_OAUTH_PAYLOAD;
@@ -598,6 +599,15 @@ class Oauth2PolicyTest {
         };
         String contextPathUrl = Oauth2Policy.contextPathUrl(request);
         assertThat(contextPathUrl).isEqualTo("http://localhost:8082/test/");
+    }
+
+    @ParameterizedTest
+    @CsvSource({ "PROXY,true", "MESSAGE,true", "LLM_PROXY,true", "NATIVE,true", "MCP_PROXY,false" })
+    public void testRequireSubscription(String apiType, boolean expected) {
+        BaseExecutionContext context = new DefaultExecutionContext(null, null);
+        context.setInternalAttribute(ATTR_INTERNAL_API_TYPE, apiType);
+        boolean requireSubscription = new Oauth2Policy(null).requireSubscription(context);
+        assertThat(requireSubscription).isEqualTo(expected);
     }
 
     private String prepareToken() {
