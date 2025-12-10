@@ -144,7 +144,7 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
 
     @Override
     public boolean requireSubscription(BaseExecutionContext context) {
-        return "MCP_PROXY".equals(context.getInternalAttribute(InternalContextAttributes.ATTR_INTERNAL_API_TYPE));
+        return !"MCP_PROXY".equals(context.getInternalAttribute(InternalContextAttributes.ATTR_INTERNAL_API_TYPE));
     }
 
     @Override
