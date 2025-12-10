@@ -1,3 +1,10 @@
+# [5.1.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.0.2...5.1.0) (2025-12-10)
+
+
+### Features
+
+* override the requireSubscription(BaseExecutionContext context) method ([072fff2](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/072fff200c37dbd74d74971db5b49a17743140c2))
+
 ## [5.0.2](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.0.1...5.0.2) (2025-12-09)
 
 
