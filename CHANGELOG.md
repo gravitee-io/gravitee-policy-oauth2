@@ -1,3 +1,10 @@
+## [5.1.2](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.1.1...5.1.2) (2025-12-10)
+
+
+### Bug Fixes
+
+* **deps:** update gravitee-apim.version to v4.10.0-alpha.1 ([0ff5be5](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/0ff5be5ba3d1913e5ea4180b33c0892eb5641d35))
+
 ## [5.1.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.1.0...5.1.1) (2025-12-10)
 
 
