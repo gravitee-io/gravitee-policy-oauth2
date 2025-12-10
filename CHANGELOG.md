@@ -1,3 +1,10 @@
+## [5.1.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.1.0...5.1.1) (2025-12-10)
+
+
+### Bug Fixes
+
+* requireSubscription(ctx) should return false for MCP_PROXY ([bff5c0d](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/bff5c0d8e1fb735ae5281e069a661c888aa3580c))
+
 # [5.1.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.0.2...5.1.0) (2025-12-10)
 
 
