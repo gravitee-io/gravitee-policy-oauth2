@@ -53,7 +53,7 @@
         },
         "addWwwAuthenticateHeader": {
             "title": "Add the WWW-Authenticate header",
-            "description": "Add the WWW-Authenticate header with the 'resource_metadata' url when no token is provided by the API caller and he receives a 401 response",
+            "description": "Add the WWW-Authenticate header containing the resource_metadata URL when no token is provided by the API caller and a 401 response is returned.",
             "type": "boolean",
             "default": true
         },
