@@ -62,7 +62,6 @@ import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
 import io.gravitee.gateway.reactive.api.context.http.HttpPlainRequest;
 import io.gravitee.gateway.reactive.api.context.http.HttpPlainResponse;
 import io.gravitee.gateway.reactive.api.policy.SecurityToken;
-import io.gravitee.gateway.reactive.core.context.AbstractRequest;
 import io.gravitee.gateway.reactive.core.context.DefaultExecutionContext;
 import io.gravitee.gateway.reactive.core.context.MutableRequest;
 import io.gravitee.gateway.reactive.core.context.MutableResponse;
@@ -585,20 +584,6 @@ class Oauth2PolicyTest {
 
         // ensure introspection as been made only once
         verify(oAuth2Resource, times(1)).introspect(any(), any());
-    }
-
-    @ParameterizedTest
-    @CsvSource({ "http, localhost:8082, /test/", "http, localhost:8082, /test" })
-    public void testContextPathUrl(String schemeParam, String originalHostParam, String contextPathParam) {
-        HttpPlainRequest request = new AbstractRequest() {
-            {
-                this.scheme = schemeParam;
-                this.originalHost = originalHostParam;
-                this.contextPath = contextPathParam;
-            }
-        };
-        String contextPathUrl = Oauth2Policy.contextPathUrl(request);
-        assertThat(contextPathUrl).isEqualTo("http://localhost:8082/test/");
     }
 
     @ParameterizedTest
