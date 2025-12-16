@@ -25,10 +25,10 @@ import io.gravitee.common.security.jwt.LazyJWT;
 import io.gravitee.gateway.api.buffer.Buffer;
 import io.gravitee.gateway.api.http.HttpHeaderNames;
 import io.gravitee.gateway.reactive.api.ExecutionFailure;
+import io.gravitee.gateway.reactive.api.context.ContextAttributes;
 import io.gravitee.gateway.reactive.api.context.InternalContextAttributes;
 import io.gravitee.gateway.reactive.api.context.base.BaseExecutionContext;
 import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
-import io.gravitee.gateway.reactive.api.context.http.HttpPlainRequest;
 import io.gravitee.gateway.reactive.api.context.kafka.KafkaConnectionContext;
 import io.gravitee.gateway.reactive.api.policy.SecurityToken;
 import io.gravitee.gateway.reactive.api.policy.http.HttpSecurityPolicy;
@@ -226,30 +226,20 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
     @Override
     public Single<Boolean> wwwAuthenticate(final HttpPlainExecutionContext ctx) {
         if (oAuth2PolicyConfiguration.isAddWwwAuthenticateHeader()) {
-            String resourceMetadata = contextPathUrl(ctx.request()) + ".well-known/oauth-protected-resource";
+            String resourceMetadata =
+                ctx.getAttribute(ContextAttributes.ATTR_REQUEST_ORIGINAL_URL) + "/.well-known/oauth-protected-resource";
             ctx.response().headers().set(HttpHeaderNames.WWW_AUTHENTICATE, "Bearer resource_metadata=\"" + resourceMetadata + "\"");
             return Single.just(true);
         }
         return Single.just(false);
     }
 
-    static String contextPathUrl(HttpPlainRequest request) {
-        String url = request.scheme() + "://" + request.originalHost();
-        if (request.contextPath().endsWith("/")) {
-            return url + request.contextPath();
-        } else {
-            return url + request.contextPath() + "/";
-        }
-    }
-
     @Override
     public Single<Boolean> onWellKnown(final HttpPlainExecutionContext ctx) {
-        if (ctx.request().path().endsWith(".well-known/oauth-protected-resource")) {
+        String originalUrl = ctx.getAttribute(ContextAttributes.ATTR_REQUEST_ORIGINAL_URL);
+        if (originalUrl.endsWith(".well-known/oauth-protected-resource")) {
             final OAuth2Resource<?> oauth2Resource = getOauth2Resource(ctx);
-            String protectedResourceUri = contextPathUrl(ctx.request());
-            protectedResourceUri = protectedResourceUri.endsWith("/")
-                ? protectedResourceUri.substring(0, protectedResourceUri.length() - 1)
-                : protectedResourceUri;
+            String protectedResourceUri = originalUrl.substring(0, originalUrl.length() - "/.well-known/oauth-protected-resource".length());
             OAuth2ResourceMetadata resourceMetadata = oauth2Resource.getProtectedResourceMetadata(protectedResourceUri);
             try {
                 String message = MAPPER.writeValueAsString(resourceMetadata);
