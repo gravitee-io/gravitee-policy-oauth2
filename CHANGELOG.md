@@ -1,3 +1,11 @@
+## [5.1.3](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.1.2...5.1.3) (2025-12-17)
+
+
+### Bug Fixes
+
+* change the addWwwAuthenticateHeader description ([331419c](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/331419c823bead5e5d6f6be46120afaeb1029a39))
+* use the new ATTR_REQUEST_ORIGINAL_URL attribute to get the original url ([dffb5ac](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/dffb5acf2eff09db4165c9c88c86e162f5d4df6a))
+
 ## [5.1.2](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.1.1...5.1.2) (2025-12-10)
 
 
