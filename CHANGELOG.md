@@ -1,3 +1,10 @@
+## [5.1.4](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.1.3...5.1.4) (2025-12-18)
+
+
+### Bug Fixes
+
+* remove snapshot ([b3c958f](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/b3c958f7167403c7e158c311e903e7db6fc3a8ee))
+
 ## [5.1.3](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.1.2...5.1.3) (2025-12-17)
 
 
