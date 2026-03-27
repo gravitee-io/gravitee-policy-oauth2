@@ -50,6 +50,7 @@ import io.gravitee.resource.oauth2.api.OAuth2Response;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.Maybe;
 import io.reactivex.rxjava3.core.Single;
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -223,12 +224,16 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
             .doAfterTerminate(() -> ctx.removeInternalAttribute(ATTR_INTERNAL_TOKEN_INTROSPECTION_RESULT));
     }
 
+    private static final String WELL_KNOWN_OAUTH_PROTECTED_RESOURCE_PATH = "/.well-known/oauth-protected-resource";
+
     @Override
     public Single<Boolean> wwwAuthenticate(final HttpPlainExecutionContext ctx) {
         if (oAuth2PolicyConfiguration.isAddWwwAuthenticateHeader()) {
+            URI uri = URI.create(ctx.getAttribute(ContextAttributes.ATTR_REQUEST_ORIGINAL_URL));
             String resourceMetadata =
-                ctx.getAttribute(ContextAttributes.ATTR_REQUEST_ORIGINAL_URL) + "/.well-known/oauth-protected-resource";
+                uri.getScheme() + "://" + uri.getRawAuthority() + WELL_KNOWN_OAUTH_PROTECTED_RESOURCE_PATH + uri.getRawPath();
             ctx.response().headers().set(HttpHeaderNames.WWW_AUTHENTICATE, "Bearer resource_metadata=\"" + resourceMetadata + "\"");
+            //ctx.response().headers().set(HttpHeaderNames.WWW_AUTHENTICATE, "Bearer resource_metadata=\"" + resourceMetadata + "\", scope=\"openid\"");
             return Single.just(true);
         }
         return Single.just(false);
@@ -237,12 +242,24 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
     @Override
     public Single<Boolean> onWellKnown(final HttpPlainExecutionContext ctx) {
         String originalUrl = ctx.getAttribute(ContextAttributes.ATTR_REQUEST_ORIGINAL_URL);
-        if (originalUrl.endsWith(".well-known/oauth-protected-resource")) {
+        if (originalUrl.contains(WELL_KNOWN_OAUTH_PROTECTED_RESOURCE_PATH)) {
             final OAuth2Resource<?> oauth2Resource = getOauth2Resource(ctx);
-            String protectedResourceUri = originalUrl.substring(0, originalUrl.length() - "/.well-known/oauth-protected-resource".length());
+            URI uri = URI.create(ctx.getAttribute(ContextAttributes.ATTR_REQUEST_ORIGINAL_URL));
+            String protectedResourceUri =
+                uri.getScheme() +
+                "://" +
+                uri.getRawAuthority() +
+                uri.getRawPath().substring(WELL_KNOWN_OAUTH_PROTECTED_RESOURCE_PATH.length());
+
             OAuth2ResourceMetadata resourceMetadata = oauth2Resource.getProtectedResourceMetadata(protectedResourceUri);
+            OAuth2ResourceMetadata resourceMetadata2 = new OAuth2ResourceMetadata(
+                resourceMetadata.protectedResourceUri(),
+                resourceMetadata.authorizationServers(),
+                oAuth2PolicyConfiguration.getRequiredScopes()
+            );
+
             try {
-                String message = MAPPER.writeValueAsString(resourceMetadata);
+                String message = MAPPER.writeValueAsString(resourceMetadata2);
                 ctx.response().body(Buffer.buffer(message));
                 return Single.just(true);
             } catch (JsonProcessingException e) {

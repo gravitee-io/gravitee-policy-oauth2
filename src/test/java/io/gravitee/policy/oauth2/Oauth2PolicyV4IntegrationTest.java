@@ -95,7 +95,7 @@ public class Oauth2PolicyV4IntegrationTest extends AbstractPolicyTest<Oauth2Poli
     @DisplayName("Should receive the OAuth2 resource metadata response when calling the '/.well-known/oauth-protected-resource' endpoint")
     void shouldGetOAuth2ResourceMetadata(HttpClient client, GatewayDynamicConfig.HttpConfig gatewayConfig) throws InterruptedException {
         Single<HttpClientResponse> httpClientResponse = client
-            .rxRequest(HttpMethod.GET, "/test/.well-known/oauth-protected-resource")
+            .rxRequest(HttpMethod.GET, "/.well-known/oauth-protected-resource/test")
             .flatMap(HttpClientRequest::rxSend);
         httpClientResponse
             .flatMapPublisher(response -> {

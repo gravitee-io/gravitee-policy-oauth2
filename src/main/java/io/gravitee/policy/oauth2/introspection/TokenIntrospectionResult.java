@@ -38,6 +38,7 @@ public class TokenIntrospectionResult {
     public static final String OAUTH_PAYLOAD_SCOPE_NODE = "scope";
     public static final String OAUTH_PAYLOAD_SCOPE_NODE_LEGACY = "scp";
     public static final String OAUTH_PAYLOAD_CLIENT_ID_NODE = "client_id";
+    public static final String OAUTH_PAYLOAD_AUD_NODE = "aud";
     public static final String OAUTH_PAYLOAD_SUB_NODE = "sub";
     public static final String OAUTH_PAYLOAD_EXP = "exp";
     public static final String OAUTH_PAYLOAD_ISSUED_AT = "iat";
@@ -62,7 +63,16 @@ public class TokenIntrospectionResult {
 
     public String getClientId() {
         if (hasValidPayload()) {
-            return oAuth2ResponseJsonNode.path(OAUTH_PAYLOAD_CLIENT_ID_NODE).asText();
+            String clientId = oAuth2ResponseJsonNode.path(OAUTH_PAYLOAD_CLIENT_ID_NODE).asText();
+            if (clientId == null || clientId.isEmpty()) {
+                JsonNode audNode = oAuth2ResponseJsonNode.path(OAUTH_PAYLOAD_AUD_NODE);
+                if (audNode instanceof ArrayNode) {
+                    clientId = audNode.path(0).asText();
+                } else {
+                    clientId = audNode.asText();
+                }
+            }
+            return clientId;
         }
         return null;
     }
