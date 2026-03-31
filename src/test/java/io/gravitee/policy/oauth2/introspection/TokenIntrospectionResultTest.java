@@ -15,13 +15,20 @@
  */
 package io.gravitee.policy.oauth2.introspection;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import io.gravitee.resource.oauth2.api.OAuth2Response;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -79,6 +86,35 @@ public class TokenIntrospectionResultTest {
         assertEquals("my-test-client-id", result.getClientId());
         assertEquals(123456789, result.getExpirationTime());
         assertEquals("my-test-user", result.extractUser(null));
+    }
+
+    static Stream<Arguments> clientIdFallbackToAud() {
+        return Stream.of(
+            Arguments.of("fallback to aud string when client_id is missing", "{\"aud\":\"my-aud-client-id\"}", "my-aud-client-id"),
+            Arguments.of(
+                "fallback to aud array first element when client_id is missing",
+                "{\"aud\":[\"first-aud\",\"second-aud\"]}",
+                "first-aud"
+            ),
+            Arguments.of("prefer client_id over aud", "{\"client_id\":\"my-client-id\", \"aud\":\"my-aud-client-id\"}", "my-client-id"),
+            Arguments.of(
+                "fallback to aud when client_id is empty",
+                "{\"client_id\":\"\", \"aud\":\"my-aud-client-id\"}",
+                "my-aud-client-id"
+            )
+        );
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("clientIdFallbackToAud")
+    void should_resolve_client_id_with_aud_fallback(String description, String payload, String expectedClientId) {
+        when(oAuth2Response.isSuccess()).thenReturn(true);
+        when(oAuth2Response.getPayload()).thenReturn(payload);
+
+        TokenIntrospectionResult result = new TokenIntrospectionResult(oAuth2Response);
+
+        assertTrue(result.hasClientId());
+        assertEquals(expectedClientId, result.getClientId());
     }
 
     @Test
