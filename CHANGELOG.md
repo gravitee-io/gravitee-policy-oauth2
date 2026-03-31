@@ -1,3 +1,11 @@
+## [5.1.5](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.1.4...5.1.5) (2026-03-31)
+
+
+### Bug Fixes
+
+* support the auth servers that don't handle the client id correctly ([09c04f8](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/09c04f8be5131c0c83a94382ae5a5254d09a0a83))
+* the well-known endpoint should be prefixed to the API, not suffixed ([0b9cd99](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/0b9cd99997d03cbc80e170de30f1949e090099c8))
+
 ## [5.1.4](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.1.3...5.1.4) (2025-12-18)
 
 
