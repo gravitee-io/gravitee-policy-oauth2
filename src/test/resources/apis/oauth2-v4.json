@@ -9,6 +9,9 @@
             "paths": [
                 {
                     "path": "/test"
+                },
+                {
+                    "path": "/.well-known/oauth-protected-resource/test"
                 }
             ],
             "entrypoints": [

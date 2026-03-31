@@ -95,7 +95,7 @@ public class Oauth2PolicyV4IntegrationTest extends AbstractPolicyTest<Oauth2Poli
     @DisplayName("Should receive the OAuth2 resource metadata response when calling the '/.well-known/oauth-protected-resource' endpoint")
     void shouldGetOAuth2ResourceMetadata(HttpClient client, GatewayDynamicConfig.HttpConfig gatewayConfig) throws InterruptedException {
         Single<HttpClientResponse> httpClientResponse = client
-            .rxRequest(HttpMethod.GET, "/test/.well-known/oauth-protected-resource")
+            .rxRequest(HttpMethod.GET, "/.well-known/oauth-protected-resource/test")
             .flatMap(HttpClientRequest::rxSend);
         httpClientResponse
             .flatMapPublisher(response -> {
@@ -133,7 +133,7 @@ public class Oauth2PolicyV4IntegrationTest extends AbstractPolicyTest<Oauth2Poli
             .flatMapPublisher(response -> {
                 assertThat(response.statusCode()).isEqualTo(401);
                 String wwwAuthenticateHeader = String.format(
-                    "Bearer resource_metadata=\"http://localhost:%s/test/.well-known/oauth-protected-resource\"",
+                    "Bearer resource_metadata=\"http://localhost:%s/.well-known/oauth-protected-resource/test\"",
                     gatewayConfig.httpPort()
                 );
                 assertThat(response.headers().get("WWW-Authenticate")).isEqualTo(wwwAuthenticateHeader);
