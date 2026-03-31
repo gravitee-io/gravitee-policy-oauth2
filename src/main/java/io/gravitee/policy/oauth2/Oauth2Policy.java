@@ -50,6 +50,7 @@ import io.gravitee.resource.oauth2.api.OAuth2Response;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.Maybe;
 import io.reactivex.rxjava3.core.Single;
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -71,10 +72,9 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
 
     public static final String CONTEXT_ATTRIBUTE_JWT = "jwt";
     public static final String CONTEXT_ATTRIBUTE_TOKEN = CONTEXT_ATTRIBUTE_PREFIX + "token";
-
     public static final String ATTR_INTERNAL_TOKEN_INTROSPECTIONS = "token-introspection-cache";
     public static final String ATTR_INTERNAL_TOKEN_INTROSPECTION_RESULT = "token-introspection-result";
-
+    private static final String WELL_KNOWN_OAUTH_PROTECTED_RESOURCE_PATH = "/.well-known/oauth-protected-resource";
     private static final String KAFKA_OAUTHBEARER_MAX_TOKEN_LIFETIME = "kafka.oauthbearer.maxTokenLifetime";
     private static final long DEFAULT_MAX_TOKEN_LIFETIME_MS = 60 * 60 * 1000L; // 1 hour
 
@@ -226,8 +226,9 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
     @Override
     public Single<Boolean> wwwAuthenticate(final HttpPlainExecutionContext ctx) {
         if (oAuth2PolicyConfiguration.isAddWwwAuthenticateHeader()) {
+            URI uri = URI.create(ctx.getAttribute(ContextAttributes.ATTR_REQUEST_ORIGINAL_URL));
             String resourceMetadata =
-                ctx.getAttribute(ContextAttributes.ATTR_REQUEST_ORIGINAL_URL) + "/.well-known/oauth-protected-resource";
+                uri.getScheme() + "://" + uri.getRawAuthority() + WELL_KNOWN_OAUTH_PROTECTED_RESOURCE_PATH + uri.getRawPath();
             ctx.response().headers().set(HttpHeaderNames.WWW_AUTHENTICATE, "Bearer resource_metadata=\"" + resourceMetadata + "\"");
             return Single.just(true);
         }
@@ -236,10 +237,15 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
 
     @Override
     public Single<Boolean> onWellKnown(final HttpPlainExecutionContext ctx) {
-        String originalUrl = ctx.getAttribute(ContextAttributes.ATTR_REQUEST_ORIGINAL_URL);
-        if (originalUrl.endsWith(".well-known/oauth-protected-resource")) {
+        URI uri = URI.create(ctx.getAttribute(ContextAttributes.ATTR_REQUEST_ORIGINAL_URL));
+        if (uri.getRawPath().startsWith(WELL_KNOWN_OAUTH_PROTECTED_RESOURCE_PATH)) {
             final OAuth2Resource<?> oauth2Resource = getOauth2Resource(ctx);
-            String protectedResourceUri = originalUrl.substring(0, originalUrl.length() - "/.well-known/oauth-protected-resource".length());
+            String protectedResourceUri =
+                uri.getScheme() +
+                "://" +
+                uri.getRawAuthority() +
+                uri.getRawPath().substring(WELL_KNOWN_OAUTH_PROTECTED_RESOURCE_PATH.length());
+
             OAuth2ResourceMetadata resourceMetadata = oauth2Resource.getProtectedResourceMetadata(protectedResourceUri);
             try {
                 String message = MAPPER.writeValueAsString(resourceMetadata);
