@@ -1,3 +1,10 @@
+# [5.2.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.1.5...5.2.0) (2026-04-02)
+
+
+### Features
+
+* add the scopes to the WWW-Authenticate header ([d3c6ca0](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/d3c6ca0ac24530e6371e12e0479ce0e26e98ce42))
+
 ## [5.1.5](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.1.4...5.1.5) (2026-03-31)
 
 
