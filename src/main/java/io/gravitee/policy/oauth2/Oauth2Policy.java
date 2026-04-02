@@ -74,6 +74,7 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
     public static final String CONTEXT_ATTRIBUTE_TOKEN = CONTEXT_ATTRIBUTE_PREFIX + "token";
     public static final String ATTR_INTERNAL_TOKEN_INTROSPECTIONS = "token-introspection-cache";
     public static final String ATTR_INTERNAL_TOKEN_INTROSPECTION_RESULT = "token-introspection-result";
+    private static final String API_TYPE_MCP_PROXY = "MCP_PROXY";
     private static final String WELL_KNOWN_OAUTH_PROTECTED_RESOURCE_PATH = "/.well-known/oauth-protected-resource";
     private static final String KAFKA_OAUTHBEARER_MAX_TOKEN_LIFETIME = "kafka.oauthbearer.maxTokenLifetime";
     private static final long DEFAULT_MAX_TOKEN_LIFETIME_MS = 60 * 60 * 1000L; // 1 hour
@@ -225,14 +226,18 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
 
     @Override
     public Single<Boolean> wwwAuthenticate(final HttpPlainExecutionContext ctx) {
-        if (oAuth2PolicyConfiguration.isAddWwwAuthenticateHeader()) {
+        String wwwAuthenticateHeader = "Bearer";
+        if (API_TYPE_MCP_PROXY.equals(ctx.getInternalAttribute(InternalContextAttributes.ATTR_INTERNAL_API_TYPE))) {
             URI uri = URI.create(ctx.getAttribute(ContextAttributes.ATTR_REQUEST_ORIGINAL_URL));
             String resourceMetadata =
                 uri.getScheme() + "://" + uri.getRawAuthority() + WELL_KNOWN_OAUTH_PROTECTED_RESOURCE_PATH + uri.getRawPath();
-            ctx.response().headers().set(HttpHeaderNames.WWW_AUTHENTICATE, "Bearer resource_metadata=\"" + resourceMetadata + "\"");
-            return Single.just(true);
+            wwwAuthenticateHeader += " resource_metadata=\"" + resourceMetadata + "\"";
         }
-        return Single.just(false);
+        if (oAuth2PolicyConfiguration.getRequiredScopes() != null && !oAuth2PolicyConfiguration.getRequiredScopes().isEmpty()) {
+            wwwAuthenticateHeader += " scope=\"" + String.join(" ", oAuth2PolicyConfiguration.getRequiredScopes()) + "\"";
+        }
+        ctx.response().headers().set(HttpHeaderNames.WWW_AUTHENTICATE, wwwAuthenticateHeader);
+        return Single.just(true);
     }
 
     @Override

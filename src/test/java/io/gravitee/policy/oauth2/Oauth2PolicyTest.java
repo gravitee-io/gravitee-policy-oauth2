@@ -56,6 +56,7 @@ import io.gravitee.gateway.api.handler.Handler;
 import io.gravitee.gateway.api.http.HttpHeaderNames;
 import io.gravitee.gateway.api.http.HttpHeaders;
 import io.gravitee.gateway.reactive.api.ExecutionFailure;
+import io.gravitee.gateway.reactive.api.context.ContextAttributes;
 import io.gravitee.gateway.reactive.api.context.GenericExecutionContext;
 import io.gravitee.gateway.reactive.api.context.base.BaseExecutionContext;
 import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
@@ -593,6 +594,56 @@ class Oauth2PolicyTest {
         context.setInternalAttribute(ATTR_INTERNAL_API_TYPE, apiType);
         boolean requireSubscription = new Oauth2Policy(null).requireSubscription(context);
         assertThat(requireSubscription).isEqualTo(expected);
+    }
+
+    @Test
+    void wwwAuthenticateShouldSetBearerOnlyWhenNotMcpProxy() {
+        when(ctx.getInternalAttribute("api.type")).thenReturn("PROXY");
+
+        final TestObserver<Boolean> obs = cut.wwwAuthenticate(ctx).test();
+        obs.assertComplete().assertValue(true);
+
+        verify(responseHeaders).set(HttpHeaderNames.WWW_AUTHENTICATE, "Bearer");
+    }
+
+    @Test
+    void wwwAuthenticateShouldIncludeResourceMetadataWhenMcpProxy() {
+        when(ctx.getInternalAttribute("api.type")).thenReturn("MCP_PROXY");
+        when(ctx.<String>getAttribute(ContextAttributes.ATTR_REQUEST_ORIGINAL_URL)).thenReturn("https://example.com/my-api");
+
+        final TestObserver<Boolean> obs = cut.wwwAuthenticate(ctx).test();
+        obs.assertComplete().assertValue(true);
+
+        verify(responseHeaders).set(
+            HttpHeaderNames.WWW_AUTHENTICATE,
+            "Bearer resource_metadata=\"https://example.com/.well-known/oauth-protected-resource/my-api\""
+        );
+    }
+
+    @Test
+    void wwwAuthenticateShouldIncludeScopesWhenConfigured() {
+        when(ctx.getInternalAttribute("api.type")).thenReturn("PROXY");
+        when(configuration.getRequiredScopes()).thenReturn(List.of("read", "write"));
+
+        final TestObserver<Boolean> obs = cut.wwwAuthenticate(ctx).test();
+        obs.assertComplete().assertValue(true);
+
+        verify(responseHeaders).set(HttpHeaderNames.WWW_AUTHENTICATE, "Bearer scope=\"read write\"");
+    }
+
+    @Test
+    void wwwAuthenticateShouldIncludeResourceMetadataAndScopesWhenMcpProxyWithScopes() {
+        when(ctx.getInternalAttribute("api.type")).thenReturn("MCP_PROXY");
+        when(ctx.<String>getAttribute(ContextAttributes.ATTR_REQUEST_ORIGINAL_URL)).thenReturn("https://example.com/my-api");
+        when(configuration.getRequiredScopes()).thenReturn(List.of("read", "write"));
+
+        final TestObserver<Boolean> obs = cut.wwwAuthenticate(ctx).test();
+        obs.assertComplete().assertValue(true);
+
+        verify(responseHeaders).set(
+            HttpHeaderNames.WWW_AUTHENTICATE,
+            "Bearer resource_metadata=\"https://example.com/.well-known/oauth-protected-resource/my-api\" scope=\"read write\""
+        );
     }
 
     private String prepareToken() {
