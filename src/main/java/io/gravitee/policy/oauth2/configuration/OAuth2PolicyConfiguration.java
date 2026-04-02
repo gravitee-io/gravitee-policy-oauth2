@@ -36,5 +36,4 @@ public class OAuth2PolicyConfiguration implements PolicyConfiguration {
     private List<String> requiredScopes = new ArrayList<>();
     private boolean modeStrict = true;
     private boolean propagateAuthHeader = true;
-    private boolean addWwwAuthenticateHeader;
 }

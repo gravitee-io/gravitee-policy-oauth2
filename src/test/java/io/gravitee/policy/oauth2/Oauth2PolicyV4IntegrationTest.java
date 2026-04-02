@@ -69,7 +69,6 @@ public class Oauth2PolicyV4IntegrationTest extends AbstractPolicyTest<Oauth2Poli
 
         OAuth2PolicyConfiguration configuration = new OAuth2PolicyConfiguration();
         configuration.setOauthResource("dummy-oauth2-resource");
-        configuration.setAddWwwAuthenticateHeader(true);
 
         String configurationString = null;
         try {
@@ -132,10 +131,7 @@ public class Oauth2PolicyV4IntegrationTest extends AbstractPolicyTest<Oauth2Poli
         httpClientResponse
             .flatMapPublisher(response -> {
                 assertThat(response.statusCode()).isEqualTo(401);
-                String wwwAuthenticateHeader = String.format(
-                    "Bearer resource_metadata=\"http://localhost:%s/.well-known/oauth-protected-resource/test\"",
-                    gatewayConfig.httpPort()
-                );
+                String wwwAuthenticateHeader = String.format("Bearer", gatewayConfig.httpPort());
                 assertThat(response.headers().get("WWW-Authenticate")).isEqualTo(wwwAuthenticateHeader);
                 return response.body().toFlowable();
             })
