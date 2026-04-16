@@ -251,7 +251,11 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
                 uri.getRawAuthority() +
                 uri.getRawPath().substring(WELL_KNOWN_OAUTH_PROTECTED_RESOURCE_PATH.length());
 
-            OAuth2ResourceMetadata resourceMetadata = oauth2Resource.getProtectedResourceMetadata(protectedResourceUri);
+            List<String> scopesSupported = oAuth2PolicyConfiguration.getRequiredScopes() != null
+                ? oAuth2PolicyConfiguration.getRequiredScopes()
+                : List.of();
+            OAuth2ResourceMetadata resourceMetadata = oauth2Resource.getProtectedResourceMetadata(protectedResourceUri, scopesSupported);
+
             try {
                 String message = MAPPER.writeValueAsString(resourceMetadata);
                 ctx.response().body(Buffer.buffer(message));

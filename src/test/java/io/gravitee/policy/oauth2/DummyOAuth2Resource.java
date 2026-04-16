@@ -58,7 +58,7 @@ public class DummyOAuth2Resource extends OAuth2Resource<DummyOAuth2Resource.Dumm
     public void userInfo(String accessToken, Handler<UserInfoResponse> responseHandler) {}
 
     @Override
-    public OAuth2ResourceMetadata getProtectedResourceMetadata(String protectedResourceUri) {
+    public OAuth2ResourceMetadata getProtectedResourceMetadata(String protectedResourceUri, List<String> scopesSupported) {
         return new OAuth2ResourceMetadata(protectedResourceUri, List.of("https://some.keycloak.com/realms/test"), List.of("read", "write"));
     }
 
