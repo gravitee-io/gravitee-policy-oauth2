@@ -1,3 +1,10 @@
+## [5.2.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.2.0...5.2.1) (2026-04-16)
+
+
+### Bug Fixes
+
+* include the scopes when returning the protected resource metadata from the oauth2 policy ([ec66949](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/ec6694955e696bd7f39cd023d5645243c39f881f))
+
 # [5.2.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.1.5...5.2.0) (2026-04-02)
 
 
