@@ -1,3 +1,10 @@
+# [5.3.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.2.1...5.3.0) (2026-04-23)
+
+
+### Features
+
+* **oauth2:** use async Cache API (APIM-13700) ([#146](https://github.com/gravitee-io/gravitee-policy-oauth2/issues/146)) ([765aabc](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/765aabc514701d2d41f19d8c6382be38dd95083b))
+
 ## [5.2.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.2.0...5.2.1) (2026-04-16)
 
 
