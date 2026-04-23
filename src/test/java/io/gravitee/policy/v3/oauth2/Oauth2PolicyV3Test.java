@@ -38,6 +38,7 @@ import io.gravitee.resource.cache.api.CacheResource;
 import io.gravitee.resource.cache.api.Element;
 import io.gravitee.resource.oauth2.api.OAuth2Resource;
 import io.gravitee.resource.oauth2.api.OAuth2Response;
+import io.vertx.core.Future;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -224,7 +225,7 @@ class Oauth2PolicyV3Test {
         JsonNode jsonNode = readJsonResource("/io/gravitee/policy/oauth2/oauth2-response07.json");
         when(cacheElement.value()).thenReturn(jsonNode.toPrettyString());
         Cache cache = mock(Cache.class);
-        when(cache.get(eq(bearer))).thenReturn(cacheElement);
+        when(cache.getAsync(eq(bearer))).thenReturn(Future.succeededFuture(cacheElement));
         when(customCacheResource.getCache(any(ExecutionContext.class))).thenReturn(cache);
 
         when(mockExecutionContext.getTemplateEngine()).thenReturn(templateEngine);
@@ -506,6 +507,7 @@ class Oauth2PolicyV3Test {
 
         Cache cache = mock(Cache.class);
         when(customCacheResource.getCache(any(ExecutionContext.class))).thenReturn(cache);
+        when(cache.putAsync(any(Element.class))).thenReturn(Future.succeededFuture());
 
         Oauth2PolicyV3 policy = new Oauth2PolicyV3(oAuth2PolicyConfiguration);
         Handler<OAuth2Response> handler = policy.handleResponse(
@@ -521,7 +523,7 @@ class Oauth2PolicyV3Test {
 
         verify(mockExecutionContext).setAttribute(Oauth2PolicyV3.CONTEXT_ATTRIBUTE_CLIENT_ID, "my-client-id");
         verify(mockPolicychain).doNext(mockRequest, mockResponse);
-        verify(cache).put(any(Element.class));
+        verify(cache).putAsync(any(Element.class));
     }
 
     @Test
@@ -537,6 +539,7 @@ class Oauth2PolicyV3Test {
 
         Cache cache = mock(Cache.class);
         when(customCacheResource.getCache(any(ExecutionContext.class))).thenReturn(cache);
+        when(cache.putAsync(any(Element.class))).thenReturn(Future.succeededFuture());
 
         Oauth2PolicyV3 policy = new Oauth2PolicyV3(oAuth2PolicyConfiguration);
         Handler<OAuth2Response> handler = policy.handleResponse(
@@ -554,7 +557,7 @@ class Oauth2PolicyV3Test {
 
         verify(mockExecutionContext).setAttribute(Oauth2PolicyV3.CONTEXT_ATTRIBUTE_CLIENT_ID, "my-client-id");
         verify(mockPolicychain).doNext(mockRequest, mockResponse);
-        verify(cache).put(any(Element.class));
+        verify(cache).putAsync(any(Element.class));
     }
 
     @Test
