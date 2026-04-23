@@ -43,7 +43,6 @@ import io.gravitee.policy.v3.oauth2.Oauth2PolicyV3;
 import io.gravitee.resource.api.ResourceManager;
 import io.gravitee.resource.cache.api.Cache;
 import io.gravitee.resource.cache.api.CacheResource;
-import io.gravitee.resource.cache.api.Element;
 import io.gravitee.resource.oauth2.api.OAuth2Resource;
 import io.gravitee.resource.oauth2.api.OAuth2ResourceMetadata;
 import io.gravitee.resource.oauth2.api.OAuth2Response;
@@ -390,23 +389,22 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
             return Single.just(tokenIntrospectionCache.get(accessToken, oauth2Resource).get());
         }
 
-        // find introspection in policy cache
+        // find introspection in policy cache (async — must not block the event loop)
         final Cache policyCache = getPolicyTokenIntrospectionCache(ctx);
-        if (policyCache != null) {
-            Element element = policyCache.get(accessToken);
-            if (element != null) {
+        Maybe<TokenIntrospectionResult> cached = policyCache == null
+            ? Maybe.empty()
+            : Maybe.fromCompletionStage(policyCache.getAsync(accessToken).toCompletionStage()).map(element -> {
                 log.debug("Token as already been introspected in the policy level cache. Re-using cached response.");
-                return Single.just(new TokenIntrospectionResult((String) element.value()));
-            }
-        }
+                return new TokenIntrospectionResult((String) element.value());
+            });
 
-        // or execute token introspection
-        Single<OAuth2Response> oAuth2Response = Single.create(emitter -> oauth2Resource.introspect(accessToken, emitter::onSuccess));
-        return oAuth2Response
-            .map(TokenIntrospectionResult::new)
-            .doOnSuccess(tokenIntrospectionResult ->
-                fillTokenIntrospectionCache(accessToken, oauth2Resource, tokenIntrospectionCache, policyCache, tokenIntrospectionResult)
-            );
+        return cached.switchIfEmpty(
+            Single.<OAuth2Response>create(emitter -> oauth2Resource.introspect(accessToken, emitter::onSuccess))
+                .map(TokenIntrospectionResult::new)
+                .doOnSuccess(tokenIntrospectionResult ->
+                    fillTokenIntrospectionCache(accessToken, oauth2Resource, tokenIntrospectionCache, policyCache, tokenIntrospectionResult)
+                )
+        );
     }
 
     private Completable introspectAndValidateAccessToken(BaseExecutionContext ctx, String accessToken, OAuth2Resource<?> oauth2Resource) {
@@ -503,14 +501,14 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
         // put the introspection result in internal cache
         tokenIntrospectionCache.put(accessToken, oauth2Resource, tokenIntrospectionResult);
 
-        // put the introspection result in policy cache if configured
+        // put the introspection result in policy cache if configured (fire-and-forget; must not block the event loop)
         if (policyCache != null && tokenIntrospectionResult.isSuccess() && tokenIntrospectionResult.hasValidPayload()) {
             CacheElement element = new CacheElement(accessToken, tokenIntrospectionResult.getOauth2ResponsePayload());
             if (tokenIntrospectionResult.hasExpirationTime()) {
                 long ttl = tokenIntrospectionResult.getExpirationTime() - System.currentTimeMillis() / 1000L;
                 element.setTimeToLive(Long.valueOf(ttl).intValue());
             }
-            policyCache.put(element);
+            policyCache.putAsync(element).onFailure(err -> log.warn("Failed to store introspection result in cache", err));
         }
     }
 }

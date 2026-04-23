@@ -35,7 +35,6 @@ import io.gravitee.policy.oauth2.configuration.OAuth2PolicyConfiguration;
 import io.gravitee.policy.oauth2.resource.CacheElement;
 import io.gravitee.resource.api.ResourceManager;
 import io.gravitee.resource.cache.api.CacheResource;
-import io.gravitee.resource.cache.api.Element;
 import io.gravitee.resource.oauth2.api.OAuth2Resource;
 import io.gravitee.resource.oauth2.api.OAuth2Response;
 import java.io.IOException;
@@ -133,13 +132,21 @@ public class Oauth2PolicyV3 {
             .getResource(oAuth2PolicyConfiguration.getOauthCacheResource(), CacheResource.class);
 
         if (cacheResource != null) {
-            Element element = cacheResource.getCache(executionContext).get(accessToken);
-            if (element != null) {
-                String oauth2payload = (String) element.value();
-                handleSuccess(policyChain, request, response, executionContext, oauth2payload, null);
-            } else {
-                oauth2.introspect(accessToken, handleResponse(policyChain, request, response, executionContext, cacheResource));
-            }
+            // async cache lookup — must not block the event loop
+            cacheResource
+                .getCache(executionContext)
+                .getAsync(accessToken)
+                .onComplete(ar -> {
+                    if (ar.succeeded() && ar.result() != null) {
+                        String oauth2payload = (String) ar.result().value();
+                        handleSuccess(policyChain, request, response, executionContext, oauth2payload, null);
+                    } else {
+                        if (ar.failed()) {
+                            logger.warn("Failed to read access token from cache, falling back to introspection", ar.cause());
+                        }
+                        oauth2.introspect(accessToken, handleResponse(policyChain, request, response, executionContext, cacheResource));
+                    }
+                });
         } else {
             // Validate access token
             oauth2.introspect(accessToken, handleResponse(policyChain, request, response, executionContext, null));
@@ -233,7 +240,11 @@ public class Oauth2PolicyV3 {
                 long ttl = expTimestamp - System.currentTimeMillis() / 1000L;
                 element.setTimeToLive(Long.valueOf(ttl).intValue());
             }
-            cacheResource.getCache(executionContext).put(element);
+            // fire-and-forget async put — must not block the event loop
+            cacheResource
+                .getCache(executionContext)
+                .putAsync(element)
+                .onFailure(err -> logger.warn("Failed to store introspection result in cache", err));
         }
 
         if (!oAuth2PolicyConfiguration.isPropagateAuthHeader()) {

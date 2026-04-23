@@ -78,6 +78,7 @@ import io.gravitee.resource.oauth2.api.OAuth2ResourceException;
 import io.gravitee.resource.oauth2.api.OAuth2Response;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.observers.TestObserver;
+import io.vertx.core.Future;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -435,7 +436,7 @@ class Oauth2PolicyTest {
         obs.assertComplete();
 
         verify(ctx).setAttribute(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID, "my-client-id");
-        verify(cache).put(
+        verify(cache).putAsync(
             argThat(e -> {
                 assertEquals(token, e.key());
                 assertEquals(payload, e.value());
@@ -448,6 +449,9 @@ class Oauth2PolicyTest {
         when(configuration.getOauthCacheResource()).thenReturn(OAUTH_CACHE_RESOURCE);
         when(cacheResource.getCache(any(BaseExecutionContext.class))).thenReturn(cache);
         when(resourceManager.getResource(OAUTH_CACHE_RESOURCE, CacheResource.class)).thenReturn(cacheResource);
+        // Default: cache miss for any key, and successful put — override per-test for hit cases
+        lenient().when(cache.getAsync(any())).thenReturn(Future.succeededFuture(null));
+        lenient().when(cache.putAsync(any())).thenReturn(Future.succeededFuture());
     }
 
     @Test
@@ -465,7 +469,7 @@ class Oauth2PolicyTest {
         obs.assertComplete();
 
         verify(ctx).setAttribute(Oauth2Policy.CONTEXT_ATTRIBUTE_CLIENT_ID, "my-client-id");
-        verify(cache).put(
+        verify(cache).putAsync(
             argThat(e -> {
                 assertEquals(token, e.key());
                 assertEquals(payload, e.value());
@@ -484,7 +488,7 @@ class Oauth2PolicyTest {
         final String payload = readResource("/io/gravitee/policy/oauth2/oauth2-response04.json");
         final CacheElement cacheElement = new CacheElement(token, payload);
 
-        when(cache.get(token)).thenReturn(cacheElement);
+        when(cache.getAsync(token)).thenReturn(Future.succeededFuture(cacheElement));
 
         final TestObserver<Void> obs = cut.onRequest(ctx).test();
         obs.assertComplete();
