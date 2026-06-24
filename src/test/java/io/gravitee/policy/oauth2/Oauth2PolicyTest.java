@@ -75,6 +75,7 @@ import io.gravitee.resource.cache.api.Cache;
 import io.gravitee.resource.cache.api.CacheResource;
 import io.gravitee.resource.oauth2.api.OAuth2Resource;
 import io.gravitee.resource.oauth2.api.OAuth2ResourceException;
+import io.gravitee.resource.oauth2.api.OAuth2ResourceMetadata;
 import io.gravitee.resource.oauth2.api.OAuth2Response;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.observers.TestObserver;
@@ -648,6 +649,110 @@ class Oauth2PolicyTest {
             HttpHeaderNames.WWW_AUTHENTICATE,
             "Bearer resource_metadata=\"https://example.com/.well-known/oauth-protected-resource/my-api\" scope=\"read write\""
         );
+    }
+
+    @Test
+    void onWellKnownShouldRespondForInsertedForm() {
+        when(ctx.<String>getAttribute(ContextAttributes.ATTR_REQUEST_ORIGINAL_URL)).thenReturn(
+            "https://example.com/.well-known/oauth-protected-resource/my-api"
+        );
+        prepareOauth2Resource();
+
+        OAuth2ResourceMetadata metadata = new OAuth2ResourceMetadata(
+            "https://example.com/my-api",
+            List.of("https://auth.example.com"),
+            List.of()
+        );
+        when(oAuth2Resource.getProtectedResourceMetadata("https://example.com/my-api", List.of())).thenReturn(metadata);
+
+        final TestObserver<Boolean> obs = cut.onWellKnown(ctx).test();
+        obs.assertComplete().assertValue(true);
+
+        verify(response).body(any(io.gravitee.gateway.api.buffer.Buffer.class));
+        verify(responseHeaders).set(HttpHeaderNames.CONTENT_TYPE, "application/json");
+    }
+
+    @Test
+    void onWellKnownShouldRespondForPathBasedForm() {
+        when(ctx.<String>getAttribute(ContextAttributes.ATTR_REQUEST_ORIGINAL_URL)).thenReturn(
+            "https://example.com/my-api/.well-known/oauth-protected-resource"
+        );
+        prepareOauth2Resource();
+
+        OAuth2ResourceMetadata metadata = new OAuth2ResourceMetadata(
+            "https://example.com/my-api",
+            List.of("https://auth.example.com"),
+            List.of()
+        );
+        when(oAuth2Resource.getProtectedResourceMetadata("https://example.com/my-api", List.of())).thenReturn(metadata);
+
+        final TestObserver<Boolean> obs = cut.onWellKnown(ctx).test();
+        obs.assertComplete().assertValue(true);
+
+        verify(response).body(any(io.gravitee.gateway.api.buffer.Buffer.class));
+        verify(responseHeaders).set(HttpHeaderNames.CONTENT_TYPE, "application/json");
+    }
+
+    @Test
+    void onWellKnownShouldReturnFalseForUnrelatedPath() {
+        when(ctx.<String>getAttribute(ContextAttributes.ATTR_REQUEST_ORIGINAL_URL)).thenReturn("https://example.com/my-api/some-path");
+
+        final TestObserver<Boolean> obs = cut.onWellKnown(ctx).test();
+        obs.assertComplete().assertValue(false);
+
+        verify(response, never()).body(any(io.gravitee.gateway.api.buffer.Buffer.class));
+    }
+
+    @Test
+    void onWellKnownShouldReturnFalseWhenNoOAuth2Resource() {
+        when(ctx.<String>getAttribute(ContextAttributes.ATTR_REQUEST_ORIGINAL_URL)).thenReturn(
+            "https://example.com/.well-known/oauth-protected-resource/my-api"
+        );
+        when(configuration.getOauthResource()).thenReturn(null);
+
+        final TestObserver<Boolean> obs = cut.onWellKnown(ctx).test();
+        obs.assertComplete().assertValue(false);
+    }
+
+    @Test
+    void onWellKnownShouldUseRootPathForInsertedFormWithoutSuffix() {
+        when(ctx.<String>getAttribute(ContextAttributes.ATTR_REQUEST_ORIGINAL_URL)).thenReturn(
+            "https://example.com/.well-known/oauth-protected-resource"
+        );
+        prepareOauth2Resource();
+
+        OAuth2ResourceMetadata metadata = new OAuth2ResourceMetadata(
+            "https://example.com/",
+            List.of("https://auth.example.com"),
+            List.of()
+        );
+        when(oAuth2Resource.getProtectedResourceMetadata("https://example.com/", List.of())).thenReturn(metadata);
+
+        final TestObserver<Boolean> obs = cut.onWellKnown(ctx).test();
+        obs.assertComplete().assertValue(true);
+
+        verify(response).body(any(io.gravitee.gateway.api.buffer.Buffer.class));
+    }
+
+    @Test
+    void onWellKnownShouldIncludeConfiguredScopes() {
+        when(ctx.<String>getAttribute(ContextAttributes.ATTR_REQUEST_ORIGINAL_URL)).thenReturn(
+            "https://example.com/my-api/.well-known/oauth-protected-resource"
+        );
+        prepareOauth2Resource();
+        when(configuration.getRequiredScopes()).thenReturn(List.of("read", "write"));
+
+        OAuth2ResourceMetadata metadata = new OAuth2ResourceMetadata(
+            "https://example.com/my-api",
+            List.of("https://auth.example.com"),
+            List.of("read", "write")
+        );
+        when(oAuth2Resource.getProtectedResourceMetadata("https://example.com/my-api", List.of("read", "write"))).thenReturn(metadata);
+
+        final TestObserver<Boolean> obs = cut.onWellKnown(ctx).test();
+        obs.assertComplete().assertValue(true);
+
+        verify(response).body(any(io.gravitee.gateway.api.buffer.Buffer.class));
     }
 
     private String prepareToken() {
