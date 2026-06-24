@@ -242,29 +242,43 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
     @Override
     public Single<Boolean> onWellKnown(final HttpPlainExecutionContext ctx) {
         URI uri = URI.create(ctx.getAttribute(ContextAttributes.ATTR_REQUEST_ORIGINAL_URL));
-        if (uri.getRawPath().startsWith(WELL_KNOWN_OAUTH_PROTECTED_RESOURCE_PATH)) {
-            final OAuth2Resource<?> oauth2Resource = getOauth2Resource(ctx);
-            String protectedResourceUri =
-                uri.getScheme() +
-                "://" +
-                uri.getRawAuthority() +
-                uri.getRawPath().substring(WELL_KNOWN_OAUTH_PROTECTED_RESOURCE_PATH.length());
+        String rawPath = uri.getRawPath();
 
-            List<String> scopesSupported = oAuth2PolicyConfiguration.getRequiredScopes() != null
-                ? oAuth2PolicyConfiguration.getRequiredScopes()
-                : List.of();
-            OAuth2ResourceMetadata resourceMetadata = oauth2Resource.getProtectedResourceMetadata(protectedResourceUri, scopesSupported);
-
-            try {
-                String message = MAPPER.writeValueAsString(resourceMetadata);
-                ctx.response().body(Buffer.buffer(message));
-                return Single.just(true);
-            } catch (JsonProcessingException e) {
-                log.error("Unable to serialize OAuth2 resource metadata", e);
-                return Single.just(false);
-            }
+        String protectedResourcePath;
+        if (rawPath.startsWith(WELL_KNOWN_OAUTH_PROTECTED_RESOURCE_PATH)) {
+            // §3.1 inserted form: /.well-known/oauth-protected-resource/my-api
+            protectedResourcePath = rawPath.substring(WELL_KNOWN_OAUTH_PROTECTED_RESOURCE_PATH.length());
+        } else if (rawPath.endsWith(WELL_KNOWN_OAUTH_PROTECTED_RESOURCE_PATH)) {
+            // Path-based form: /my-api/.well-known/oauth-protected-resource
+            protectedResourcePath = rawPath.substring(0, rawPath.length() - WELL_KNOWN_OAUTH_PROTECTED_RESOURCE_PATH.length());
+        } else {
+            return Single.just(false);
         }
-        return Single.just(false);
+
+        if (protectedResourcePath.isEmpty()) {
+            protectedResourcePath = "/";
+        }
+        String protectedResourceUri = uri.getScheme() + "://" + uri.getRawAuthority() + protectedResourcePath;
+
+        final OAuth2Resource<?> oauth2Resource = getOauth2Resource(ctx);
+        if (oauth2Resource == null) {
+            return Single.just(false);
+        }
+
+        List<String> scopesSupported = oAuth2PolicyConfiguration.getRequiredScopes() != null
+            ? oAuth2PolicyConfiguration.getRequiredScopes()
+            : List.of();
+        OAuth2ResourceMetadata resourceMetadata = oauth2Resource.getProtectedResourceMetadata(protectedResourceUri, scopesSupported);
+
+        try {
+            String message = MAPPER.writeValueAsString(resourceMetadata);
+            ctx.response().headers().set(HttpHeaderNames.CONTENT_TYPE, "application/json");
+            ctx.response().body(Buffer.buffer(message));
+            return Single.just(true);
+        } catch (JsonProcessingException e) {
+            log.error("Unable to serialize OAuth2 resource metadata", e);
+            return Single.just(false);
+        }
     }
 
     private Maybe<SecurityToken> getSecurityTokenFromContext(BaseExecutionContext ctx) {
