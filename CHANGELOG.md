@@ -1,3 +1,10 @@
+## [5.3.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.3.0...5.3.1) (2026-06-25)
+
+
+### Bug Fixes
+
+* support path-based well-known form ([451f5b6](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/451f5b6e55cdd2e48b02c746117817f18c0b6654)), closes [AC#2](https://github.com/AC/issues/2)
+
 # [5.3.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.2.1...5.3.0) (2026-04-23)
 
 
