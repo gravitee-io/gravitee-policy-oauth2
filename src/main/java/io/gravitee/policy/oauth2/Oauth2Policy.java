@@ -54,12 +54,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import javax.security.auth.callback.Callback;
+import lombok.CustomLog;
 import lombok.Getter;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerValidatorCallback;
 import org.apache.kafka.common.security.oauthbearer.internals.secured.BasicOAuthBearerToken;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
 
 /**
@@ -67,6 +66,7 @@ import org.springframework.core.env.Environment;
  * @author GraviteeSource Team
  */
 @RequireResource
+@CustomLog
 public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, KafkaSecurityPolicy {
 
     public static final String CONTEXT_ATTRIBUTE_JWT = "jwt";
@@ -77,8 +77,6 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
     private static final String WELL_KNOWN_OAUTH_PROTECTED_RESOURCE_PATH = "/.well-known/oauth-protected-resource";
     private static final String KAFKA_OAUTHBEARER_MAX_TOKEN_LIFETIME = "kafka.oauthbearer.maxTokenLifetime";
     private static final long DEFAULT_MAX_TOKEN_LIFETIME_MS = 60 * 60 * 1000L; // 1 hour
-
-    private static final Logger log = LoggerFactory.getLogger(Oauth2Policy.class);
 
     private enum Oauth2Failure {
         OAUTH2_MISSING_SERVER_FAILURE(UNAUTHORIZED_401, OAUTH2_MISSING_SERVER_KEY, OAUTH2_UNAUTHORIZED_MESSAGE, false),
@@ -160,7 +158,7 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
     @Override
     public Completable onRequest(final HttpPlainExecutionContext ctx) {
         return Completable.defer(() -> {
-            log.debug("Read access_token from request {}", ctx.request().id());
+            ctx.withLogger(log).debug("Read access_token from request {}", ctx.request().id());
             return handleSecurity(ctx);
         })
             .andThen(
@@ -276,7 +274,7 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
             ctx.response().body(Buffer.buffer(message));
             return Single.just(true);
         } catch (JsonProcessingException e) {
-            log.error("Unable to serialize OAuth2 resource metadata", e);
+            ctx.withLogger(log).error("Unable to serialize OAuth2 resource metadata", e);
             return Single.just(false);
         }
     }
@@ -284,7 +282,7 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
     private Maybe<SecurityToken> getSecurityTokenFromContext(BaseExecutionContext ctx) {
         final OAuth2Resource<?> oauth2Resource = getOauth2Resource(ctx);
         if (oauth2Resource == null) {
-            log.debug("Skipping security token extraction cause no oauth2 resource configured");
+            ctx.withLogger(log).debug("Skipping security token extraction cause no oauth2 resource configured");
             return Maybe.empty();
         }
 
@@ -399,7 +397,9 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
         // find introspection in request context cache
         TokenIntrospectionCache tokenIntrospectionCache = getContextTokenIntrospectionCache(ctx);
         if (tokenIntrospectionCache.contains(accessToken, oauth2Resource)) {
-            log.debug("Token as already been introspected by this Oauth resource on the current request. Re-using cached response.");
+            ctx
+                .withLogger(log)
+                .debug("Token as already been introspected by this Oauth resource on the current request. Re-using cached response.");
             return Single.just(tokenIntrospectionCache.get(accessToken, oauth2Resource).get());
         }
 
@@ -408,7 +408,7 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
         Maybe<TokenIntrospectionResult> cached = policyCache == null
             ? Maybe.empty()
             : Maybe.fromCompletionStage(policyCache.getAsync(accessToken).toCompletionStage()).map(element -> {
-                log.debug("Token as already been introspected in the policy level cache. Re-using cached response.");
+                ctx.withLogger(log).debug("Token as already been introspected in the policy level cache. Re-using cached response.");
                 return new TokenIntrospectionResult((String) element.value());
             });
 

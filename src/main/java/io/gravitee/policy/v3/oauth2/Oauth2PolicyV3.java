@@ -43,8 +43,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.CustomLog;
 import org.springframework.util.StringUtils;
 
 /**
@@ -53,9 +52,8 @@ import org.springframework.util.StringUtils;
  * @author GraviteeSource Team
  */
 @RequireResource
+@CustomLog
 public class Oauth2PolicyV3 {
-
-    private final Logger logger = LoggerFactory.getLogger(Oauth2PolicyV3.class);
 
     public static final String BEARER_AUTHORIZATION_TYPE = "Bearer";
     public static final String OAUTH_PAYLOAD_SCOPE_NODE = "scope";
@@ -90,7 +88,7 @@ public class Oauth2PolicyV3 {
 
     @OnRequest
     public void onRequest(Request request, Response response, ExecutionContext executionContext, PolicyChain policyChain) {
-        logger.debug("Read access_token from request {}", request.id());
+        log.debug("Read access_token from request {}", request.id());
 
         oAuth2PolicyConfiguration.setOauthResource(
             executionContext.getTemplateEngine().getValue(oAuth2PolicyConfiguration.getOauthResource(), String.class)
@@ -142,7 +140,7 @@ public class Oauth2PolicyV3 {
                         handleSuccess(policyChain, request, response, executionContext, oauth2payload, null);
                     } else {
                         if (ar.failed()) {
-                            logger.warn("Failed to read access token from cache, falling back to introspection", ar.cause());
+                            log.warn("Failed to read access token from cache, falling back to introspection", ar.cause());
                         }
                         oauth2.introspect(accessToken, handleResponse(policyChain, request, response, executionContext, cacheResource));
                     }
@@ -244,7 +242,7 @@ public class Oauth2PolicyV3 {
             cacheResource
                 .getCache(executionContext)
                 .putAsync(element)
-                .onFailure(err -> logger.warn("Failed to store introspection result in cache", err));
+                .onFailure(err -> log.warn("Failed to store introspection result in cache", err));
         }
 
         if (!oAuth2PolicyConfiguration.isPropagateAuthHeader()) {
@@ -273,7 +271,7 @@ public class Oauth2PolicyV3 {
         try {
             return MAPPER.readTree(oauthPayload);
         } catch (IOException ioe) {
-            logger.error("Unable to check required scope from introspection endpoint payload: {}", oauthPayload);
+            log.error("Unable to check required scope from introspection endpoint payload: {}", oauthPayload);
             return null;
         }
     }

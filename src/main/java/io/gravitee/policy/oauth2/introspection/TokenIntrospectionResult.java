@@ -25,15 +25,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.CustomLog;
 
 /**
  * The result of an Oauth2 token introspection.
  */
+@CustomLog
 public class TokenIntrospectionResult {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(Oauth2Policy.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     public static final String OAUTH_PAYLOAD_SCOPE_NODE = "scope";
     public static final String OAUTH_PAYLOAD_SCOPE_NODE_LEGACY = "scp";
@@ -134,7 +133,7 @@ public class TokenIntrospectionResult {
         try {
             return MAPPER.readTree(payload);
         } catch (IOException ioe) {
-            LOGGER.error("Unable to read Oauth2 token payload : {}", payload);
+            log.error("Unable to read Oauth2 token payload : {}", payload);
             return null;
         }
     }
