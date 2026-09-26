@@ -36,13 +36,16 @@ $ curl -H "Authorization: Bearer |accessToken|" \
 == Compatibility with APIM
 
 |===
-| Plugin version | APIM version
-| 5.x            | 4.10.x to latest
-| 4.x            | 4.6.x to 4.9.x
-| 3.x            | 4.0.x to 4.5.x
-| 2.x            | 3.20.x
-| 1.x            | Up to 3.19.x
+| Plugin version | APIM version     | Java version
+
+| 5.x            | 4.10.x to latest | 21
+| 4.x            | 4.6.x to 4.9.x   | 17
+| 3.x            | 4.0.x to 4.5.x   | 17
+| 2.x            | 3.20.x           | 11
+| 1.x            | Up to 3.19.x     | 11
 |===
+
+The *Java version* column is the bytecode level of the latest release of each line, which sets the minimum runtime able to load the artifact.
 
 == Attributes
 
