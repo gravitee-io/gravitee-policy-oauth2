@@ -151,6 +151,9 @@ class Oauth2PolicyTest {
 
     @BeforeEach
     void init() {
+        org.mockito.Mockito.lenient()
+            .when(ctx.withLogger(org.mockito.ArgumentMatchers.any()))
+            .thenReturn(org.slf4j.LoggerFactory.getLogger(getClass()));
         // Common lenient mocks.
         lenient().when(ctx.getComponent(ResourceManager.class)).thenReturn(resourceManager);
         lenient().when(ctx.request()).thenReturn(request);
@@ -581,7 +584,13 @@ class Oauth2PolicyTest {
         final String payload = readJsonResource("/io/gravitee/policy/oauth2/oauth2-response09.json").toString();
         prepareIntrospection(token, payload, true);
 
-        HttpPlainExecutionContext ctx = new DefaultExecutionContext(mock(MutableRequest.class), mock(MutableResponse.class));
+        var componentProvider = mock(io.gravitee.gateway.core.component.ComponentProvider.class);
+        // le logger contextuel se construit à partir du Node que le contexte lui fournit
+        when(componentProvider.getComponent(io.gravitee.node.api.Node.class)).thenReturn(mock(io.gravitee.node.api.Node.class));
+        HttpPlainExecutionContext ctx = new DefaultExecutionContext(
+            mock(MutableRequest.class),
+            mock(MutableResponse.class)
+        ).componentProvider(componentProvider);
         TestObserver<TokenIntrospectionResult> result1 = cut.introspectAccessToken(ctx, token, oAuth2Resource).test();
         TestObserver<TokenIntrospectionResult> result2 = cut.introspectAccessToken(ctx, token, oAuth2Resource).test();
 
