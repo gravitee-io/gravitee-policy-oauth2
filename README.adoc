@@ -38,7 +38,8 @@ $ curl -H "Authorization: Bearer |accessToken|" \
 |===
 | Plugin version | APIM version     | Java version
 
-| 5.x            | 4.10.x to latest | 21
+| 6.x            | 4.12.x to latest | 21
+| 5.x            | 4.10.x to 4.11.x | 21
 | 4.x            | 4.6.x to 4.9.x   | 17
 | 3.x            | 4.0.x to 4.5.x   | 17
 | 2.x            | 3.20.x           | 11
