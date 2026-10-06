@@ -1,3 +1,10 @@
+## [5.3.2](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.3.1...5.3.2) (2026-10-06)
+
+
+### Bug Fixes
+
+* **deps:** bump gravitee-apim to 4.11.29 ([934ef2f](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/934ef2f5d5559a643913e95d20dd8c8f74bc0784))
+
 ## [5.3.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.3.0...5.3.1) (2026-06-25)
 
 
