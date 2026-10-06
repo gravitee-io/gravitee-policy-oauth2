@@ -1,3 +1,19 @@
+# [6.0.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.3.1...6.0.0) (2026-10-06)
+
+
+### Bug Fixes
+
+* **deps:** bump gravitee-apim to 4.12.21 ([b2c6fa8](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/b2c6fa879bd516a8fd55ac3f4ab3f727e1822eba))
+
+
+### BREAKING CHANGES
+
+* **deps:** the plugin now compiles against gravitee-gateway-api 6.x (APIM 4.12.x) instead of
+5.x (APIM 4.11.x). Deploy this version on APIM 4.12 or later; APIM 4.10 and 4.11 must stay on the
+5.x plugin line.
+
+https://gravitee.atlassian.net/browse/BX-422
+
 ## [5.3.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.3.0...5.3.1) (2026-06-25)
 
 
