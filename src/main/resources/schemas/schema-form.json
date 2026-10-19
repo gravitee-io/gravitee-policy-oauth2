@@ -71,6 +71,12 @@
             "description": "Allows to propagate Authorization header to the target endpoints",
             "type": "boolean",
             "default": true
+        },
+        "requireSubscription": {
+            "title": "Require a subscription (MCP APIs only)",
+            "description": "Only applies to MCP Proxy APIs, which accept a valid token without a subscription by default. When enabled, the token's client must belong to an application subscribed to this plan. Other API types always require a subscription.",
+            "type": "boolean",
+            "default": false
         }
     },
     "required": ["oauthResource"],
