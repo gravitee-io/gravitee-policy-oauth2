@@ -601,13 +601,39 @@ class Oauth2PolicyTest {
         verify(oAuth2Resource, times(1)).introspect(any(), any());
     }
 
+    // An empty "configured" value means no policy configuration at all
     @ParameterizedTest
-    @CsvSource({ "PROXY,true", "MESSAGE,true", "LLM_PROXY,true", "NATIVE,true", "MCP_PROXY,false" })
-    public void testRequireSubscription(String apiType, boolean expected) {
+    @CsvSource(
+        {
+            "PROXY,,true",
+            "PROXY,false,true",
+            "PROXY,true,true",
+            "MESSAGE,,true",
+            "MESSAGE,false,true",
+            "LLM_PROXY,,true",
+            "LLM_PROXY,false,true",
+            "NATIVE,,true",
+            "NATIVE,false,true",
+            "MCP_PROXY,,false",
+            "MCP_PROXY,false,false",
+            "MCP_PROXY,true,true",
+        }
+    )
+    public void testRequireSubscription(String apiType, Boolean configured, boolean expected) {
         BaseExecutionContext context = new DefaultExecutionContext(null, null);
         context.setInternalAttribute(ATTR_INTERNAL_API_TYPE, apiType);
-        boolean requireSubscription = new Oauth2Policy(null).requireSubscription(context);
+        OAuth2PolicyConfiguration configuration = null;
+        if (configured != null) {
+            configuration = new OAuth2PolicyConfiguration();
+            configuration.setRequireSubscription(configured);
+        }
+        boolean requireSubscription = new Oauth2Policy(configuration).requireSubscription(context);
         assertThat(requireSubscription).isEqualTo(expected);
+    }
+
+    @Test
+    void requireSubscriptionShouldDefaultToFalse() {
+        assertThat(new OAuth2PolicyConfiguration().isRequireSubscription()).isFalse();
     }
 
     @Test
