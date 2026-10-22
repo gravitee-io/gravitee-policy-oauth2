@@ -36,4 +36,9 @@ public class OAuth2PolicyConfiguration implements PolicyConfiguration {
     private List<String> requiredScopes = new ArrayList<>();
     private boolean modeStrict = true;
     private boolean propagateAuthHeader = true;
+    /**
+     * Only read on an MCP Proxy API, where a subscription is not required by default. Every other API type always
+     * requires one.
+     */
+    private boolean requireSubscription = false;
 }

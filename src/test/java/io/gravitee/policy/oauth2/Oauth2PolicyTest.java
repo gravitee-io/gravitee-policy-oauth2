@@ -610,6 +610,32 @@ class Oauth2PolicyTest {
         assertThat(requireSubscription).isEqualTo(expected);
     }
 
+    @ParameterizedTest
+    @CsvSource(
+        {
+            "PROXY,false,true",
+            "PROXY,true,true",
+            "MESSAGE,false,true",
+            "LLM_PROXY,false,true",
+            "NATIVE,false,true",
+            "MCP_PROXY,false,false",
+            "MCP_PROXY,true,true",
+        }
+    )
+    public void testRequireSubscriptionWithConfiguration(String apiType, boolean configured, boolean expected) {
+        BaseExecutionContext context = new DefaultExecutionContext(null, null);
+        context.setInternalAttribute(ATTR_INTERNAL_API_TYPE, apiType);
+        OAuth2PolicyConfiguration configuration = new OAuth2PolicyConfiguration();
+        configuration.setRequireSubscription(configured);
+        boolean requireSubscription = new Oauth2Policy(configuration).requireSubscription(context);
+        assertThat(requireSubscription).isEqualTo(expected);
+    }
+
+    @Test
+    void requireSubscriptionShouldDefaultToFalse() {
+        assertThat(new OAuth2PolicyConfiguration().isRequireSubscription()).isFalse();
+    }
+
     @Test
     void wwwAuthenticateShouldSetBearerOnlyWhenNotMcpProxy() {
         when(ctx.getInternalAttribute("api.type")).thenReturn("PROXY");
