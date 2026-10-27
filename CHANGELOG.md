@@ -1,3 +1,10 @@
+# [6.1.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/6.0.0...6.1.0) (2026-10-27)
+
+
+### Features
+
+* make the subscription check configurable for mcp apis ([88563d2](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/88563d2cb76887f6a52fab15758210f75e3604d1))
+
 # [6.0.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.3.1...6.0.0) (2026-10-06)
 
 
