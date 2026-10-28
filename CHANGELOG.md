@@ -1,3 +1,10 @@
+## [6.1.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/6.1.0...6.1.1) (2026-10-28)
+
+
+### Bug Fixes
+
+* release with gravitee v5.19.4 ([#159](https://github.com/gravitee-io/gravitee-policy-oauth2/issues/159)) ([b83548f](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/b83548f12f773b25888b5c640f8d74e70ccc6d80))
+
 # [6.1.0](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/6.0.0...6.1.0) (2026-10-27)
 
 
