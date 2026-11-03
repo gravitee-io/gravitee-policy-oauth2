@@ -174,6 +174,20 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
             .doAfterTerminate(() -> ctx.removeInternalAttribute(ATTR_INTERNAL_TOKEN_INTROSPECTION_RESULT));
     }
 
+    /**
+     * Kafka reads the token lifetime as an absolute epoch timestamp in milliseconds, not as a duration.
+     * The session ends at the token expiration, or at the latest after the configured max lifetime.
+     *
+     * @param expirationTimeSeconds the token {@code exp} claim in epoch seconds, or null if absent
+     * @param maxTokenLifetimeMs the maximum session duration in milliseconds, the sum with the current time saturates instead of overflowing
+     * @param nowMs the current time in epoch milliseconds
+     * @return the absolute epoch timestamp, in milliseconds, at which the Kafka session must end
+     */
+    static long computeKafkaTokenLifetimeMs(Long expirationTimeSeconds, long maxTokenLifetimeMs, long nowMs) {
+        long maxExpirationMs = maxTokenLifetimeMs > Long.MAX_VALUE - nowMs ? Long.MAX_VALUE : nowMs + maxTokenLifetimeMs;
+        return expirationTimeSeconds == null ? maxExpirationMs : Math.min(maxExpirationMs, expirationTimeSeconds * 1000);
+    }
+
     @Override
     public Completable authenticate(KafkaConnectionContext ctx) {
         return handleSecurity(ctx)
@@ -201,7 +215,7 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
                             OAuthBearerToken token = new BasicOAuthBearerToken(
                                 extractedToken,
                                 Set.of(), // Scopes are fully managed by Gravitee, it is useless to extract & provide them to the Kafka security context.
-                                (expirationTime == null ? maxTokenLifetime : Math.min(maxTokenLifetime, expirationTime * 1000)),
+                                computeKafkaTokenLifetimeMs(expirationTime, maxTokenLifetime, System.currentTimeMillis()),
                                 user != null ? user : "unknown",
                                 issueTime
                             );
