@@ -1,3 +1,10 @@
+## [6.1.2](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/6.1.1...6.1.2) (2026-11-03)
+
+
+### Bug Fixes
+
+* **kafka:** compute absolute OAUTHBEARER token lifetime ([af81e3b](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/af81e3be9649a9b142e8cd9fecf6d0786cb317fb))
+
 ## [6.1.1](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/6.1.0...6.1.1) (2026-10-28)
 
 
