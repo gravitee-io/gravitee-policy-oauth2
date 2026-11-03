@@ -561,6 +561,28 @@ class Oauth2PolicyTest {
     }
 
     @Test
+    void shouldGiveKafkaCallbackATokenStartTimeInMillisecondsWhenAuthenticating() throws IOException {
+        final long issuedAtSeconds = 1_700_000_000L;
+        final OAuthBearerValidatorCallback callback = authenticateKafka(
+            readJsonResource("/io/gravitee/policy/oauth2/oauth2-response04.json").put("iat", issuedAtSeconds)
+        );
+
+        assertThat(callback.errorStatus()).isNull();
+        assertThat(callback.token().startTimeMs()).isEqualTo(issuedAtSeconds * 1000);
+    }
+
+    @Test
+    void shouldGiveKafkaCallbackATokenWithoutStartTimeWhenNoIssuedAt() throws IOException {
+        final ObjectNode payloadWithoutIssuedAt = readJsonResource("/io/gravitee/policy/oauth2/oauth2-response04.json");
+        assertThat(payloadWithoutIssuedAt.has("iat")).isFalse();
+
+        final OAuthBearerValidatorCallback callback = authenticateKafka(payloadWithoutIssuedAt);
+
+        assertThat(callback.errorStatus()).isNull();
+        assertThat(callback.token().startTimeMs()).isNull();
+    }
+
+    @Test
     void shouldReturnOrder100() {
         assertEquals(100, cut.order());
     }
