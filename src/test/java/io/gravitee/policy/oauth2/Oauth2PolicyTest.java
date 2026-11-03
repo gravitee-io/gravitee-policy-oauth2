@@ -62,6 +62,7 @@ import io.gravitee.gateway.reactive.api.context.base.BaseExecutionContext;
 import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
 import io.gravitee.gateway.reactive.api.context.http.HttpPlainRequest;
 import io.gravitee.gateway.reactive.api.context.http.HttpPlainResponse;
+import io.gravitee.gateway.reactive.api.context.kafka.KafkaConnectionContext;
 import io.gravitee.gateway.reactive.api.policy.SecurityToken;
 import io.gravitee.gateway.reactive.core.context.DefaultExecutionContext;
 import io.gravitee.gateway.reactive.core.context.MutableRequest;
@@ -84,8 +85,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import javax.security.auth.callback.Callback;
+import org.apache.kafka.common.security.oauthbearer.OAuthBearerValidatorCallback;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -94,6 +99,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.env.Environment;
 
 /**
  * @author Jeoffrey HAEYAERT (jeoffrey.haeyaert at graviteesource.com)
@@ -501,6 +507,60 @@ class Oauth2PolicyTest {
     }
 
     @Test
+    void shouldComputeKafkaTokenLifetimeInTheFutureWhenNoExpiration() {
+        long now = 1_700_000_000_000L;
+
+        assertThat(Oauth2Policy.computeKafkaTokenLifetimeMs(null, 3_600_000L, now)).isEqualTo(now + 3_600_000L);
+    }
+
+    @Test
+    void shouldCapKafkaTokenLifetimeByTokenExpiration() {
+        long now = 1_700_000_000_000L;
+        long expirationSeconds = now / 1000 + 60;
+
+        assertThat(Oauth2Policy.computeKafkaTokenLifetimeMs(expirationSeconds, 3_600_000L, now)).isEqualTo(expirationSeconds * 1000);
+    }
+
+    @Test
+    void shouldCapKafkaTokenLifetimeByMaxTokenLifetime() {
+        long now = 1_700_000_000_000L;
+        long expirationSeconds = now / 1000 + 86_400;
+
+        assertThat(Oauth2Policy.computeKafkaTokenLifetimeMs(expirationSeconds, 3_600_000L, now)).isEqualTo(now + 3_600_000L);
+    }
+
+    @Test
+    void shouldSaturateKafkaTokenLifetimeWhenMaxTokenLifetimeIsVeryLarge() {
+        long now = 1_700_000_000_000L;
+
+        assertThat(Oauth2Policy.computeKafkaTokenLifetimeMs(null, Long.MAX_VALUE, now)).isEqualTo(Long.MAX_VALUE);
+    }
+
+    @Test
+    void shouldGiveKafkaCallbackATokenExpiringInTheFutureWhenAuthenticating() throws IOException {
+        final OAuthBearerValidatorCallback callback = authenticateKafka(
+            readJsonResource("/io/gravitee/policy/oauth2/oauth2-response04.json")
+        );
+
+        assertThat(callback.errorStatus()).isNull();
+        assertThat(callback.token().lifetimeMs()).isBetween(
+            System.currentTimeMillis() + 3_600_000L - 10_000L,
+            System.currentTimeMillis() + 3_600_000L
+        );
+    }
+
+    @Test
+    void shouldGiveKafkaCallbackATokenCappedByExpirationWhenAuthenticating() throws IOException {
+        final long expirationSeconds = System.currentTimeMillis() / 1000 + 120;
+        final OAuthBearerValidatorCallback callback = authenticateKafka(
+            readJsonResource("/io/gravitee/policy/oauth2/oauth2-response04.json").put("exp", expirationSeconds)
+        );
+
+        assertThat(callback.errorStatus()).isNull();
+        assertThat(callback.token().lifetimeMs()).isEqualTo(expirationSeconds * 1000);
+    }
+
+    @Test
     void shouldReturnOrder100() {
         assertEquals(100, cut.order());
     }
@@ -788,6 +848,44 @@ class Oauth2PolicyTest {
         obs.assertComplete().assertValue(true);
 
         verify(response).body(any(io.gravitee.gateway.api.buffer.Buffer.class));
+    }
+
+    private OAuthBearerValidatorCallback authenticateKafka(ObjectNode introspectionPayload) {
+        final KafkaConnectionContext kafkaCtx = mock(KafkaConnectionContext.class);
+        final Environment environment = mock(Environment.class);
+        final Map<String, Object> attributes = new HashMap<>();
+        final Map<String, Object> internalAttributes = new HashMap<>();
+        final String token = UUID.randomUUID().toString();
+        final OAuthBearerValidatorCallback callback = new OAuthBearerValidatorCallback(token);
+
+        lenient().when(kafkaCtx.withLogger(any())).thenReturn(org.slf4j.LoggerFactory.getLogger(getClass()));
+        lenient().when(kafkaCtx.callbacks()).thenReturn(new Callback[] { callback });
+        lenient().when(kafkaCtx.getComponent(ResourceManager.class)).thenReturn(resourceManager);
+        lenient().when(kafkaCtx.getComponent(Environment.class)).thenReturn(environment);
+        lenient().when(kafkaCtx.getTemplateEngine()).thenReturn(templateEngine);
+        lenient()
+            .when(environment.getProperty(anyString(), eq(Long.class), any(Long.class)))
+            .thenAnswer(i -> i.getArgument(2));
+        lenient()
+            .doAnswer(i -> attributes.put(i.getArgument(0), i.getArgument(1)))
+            .when(kafkaCtx)
+            .setAttribute(anyString(), any());
+        lenient()
+            .when(kafkaCtx.getAttribute(anyString()))
+            .thenAnswer(i -> attributes.get(i.<String>getArgument(0)));
+        lenient()
+            .doAnswer(i -> internalAttributes.put(i.getArgument(0), i.getArgument(1)))
+            .when(kafkaCtx)
+            .setInternalAttribute(anyString(), any());
+        lenient()
+            .when(kafkaCtx.getInternalAttribute(anyString()))
+            .thenAnswer(i -> internalAttributes.get(i.<String>getArgument(0)));
+
+        prepareOauth2Resource();
+        prepareIntrospection(token, introspectionPayload.toString(), true);
+
+        cut.authenticate(kafkaCtx).test().assertComplete();
+        return callback;
     }
 
     private String prepareToken() {
