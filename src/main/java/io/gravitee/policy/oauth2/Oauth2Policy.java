@@ -188,6 +188,26 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
         return expirationTimeSeconds == null ? maxExpirationMs : Math.min(maxExpirationMs, expirationTimeSeconds * 1000);
     }
 
+    private static OAuthBearerToken buildKafkaToken(KafkaConnectionContext ctx) {
+        String extractedToken = ctx.getAttribute(CONTEXT_ATTRIBUTE_TOKEN);
+        String user = ctx.getAttribute(ATTR_USER);
+        TokenIntrospectionResult tokenIntrospectionResult = ctx.getInternalAttribute(ATTR_INTERNAL_TOKEN_INTROSPECTION_RESULT);
+
+        Long expirationTimeSeconds = tokenIntrospectionResult.getExpirationTime();
+        Long issuedAtSeconds = tokenIntrospectionResult.getIssuedAtTime();
+
+        Environment environment = ctx.getComponent(Environment.class);
+        long maxTokenLifetime = environment.getProperty(KAFKA_OAUTHBEARER_MAX_TOKEN_LIFETIME, Long.class, DEFAULT_MAX_TOKEN_LIFETIME_MS);
+
+        return new BasicOAuthBearerToken(
+            extractedToken,
+            Set.of(), // Scopes are fully managed by Gravitee, it is useless to extract & provide them to the Kafka security context.
+            computeKafkaTokenLifetimeMs(expirationTimeSeconds, maxTokenLifetime, System.currentTimeMillis()),
+            user != null ? user : "unknown",
+            issuedAtSeconds == null ? null : issuedAtSeconds * 1000
+        );
+    }
+
     @Override
     public Completable authenticate(KafkaConnectionContext ctx) {
         return handleSecurity(ctx)
@@ -196,31 +216,7 @@ public class Oauth2Policy extends Oauth2PolicyV3 implements HttpSecurityPolicy, 
                     Callback[] callbacks = ctx.callbacks();
                     for (Callback callback : callbacks) {
                         if (callback instanceof OAuthBearerValidatorCallback oauthCallback) {
-                            String extractedToken = ctx.getAttribute(CONTEXT_ATTRIBUTE_TOKEN);
-                            String user = ctx.getAttribute(ATTR_USER);
-                            TokenIntrospectionResult tokenIntrospectionResult = ctx.getInternalAttribute(
-                                ATTR_INTERNAL_TOKEN_INTROSPECTION_RESULT
-                            );
-
-                            Long expirationTime = tokenIntrospectionResult.getExpirationTime();
-                            Long issueTime = tokenIntrospectionResult.getIssuedAtTime();
-
-                            Environment environment = ctx.getComponent(Environment.class);
-                            long maxTokenLifetime = environment.getProperty(
-                                KAFKA_OAUTHBEARER_MAX_TOKEN_LIFETIME,
-                                Long.class,
-                                DEFAULT_MAX_TOKEN_LIFETIME_MS
-                            );
-
-                            OAuthBearerToken token = new BasicOAuthBearerToken(
-                                extractedToken,
-                                Set.of(), // Scopes are fully managed by Gravitee, it is useless to extract & provide them to the Kafka security context.
-                                computeKafkaTokenLifetimeMs(expirationTime, maxTokenLifetime, System.currentTimeMillis()),
-                                user != null ? user : "unknown",
-                                issueTime
-                            );
-
-                            oauthCallback.token(token);
+                            oauthCallback.token(buildKafkaToken(ctx));
                         }
                     }
                 })
