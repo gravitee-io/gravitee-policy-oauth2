@@ -1,3 +1,10 @@
+## [5.3.4](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.3.3...5.3.4) (2026-11-04)
+
+
+### Bug Fixes
+
+* **kafka:** pass OAUTHBEARER token start time in milliseconds ([d20f4f2](https://github.com/gravitee-io/gravitee-policy-oauth2/commit/d20f4f2a28b57ab2a0471e471d3e2b19bfb1f2d5))
+
 ## [5.3.3](https://github.com/gravitee-io/gravitee-policy-oauth2/compare/5.3.2...5.3.3) (2026-11-03)
 
 
